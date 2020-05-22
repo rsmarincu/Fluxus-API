@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+    math:
+        build: ./src/math
+        ports:
+            - 5000:3000
+        image: fluxusregistry.azurecr.io/fluxus:latest

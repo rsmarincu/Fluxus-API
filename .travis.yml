@@ -1,0 +1,28 @@
+language: python
+python: 
+    - "3.8"
+
+services:
+    - docker
+
+before_script:
+    - pip install docker-compose 
+
+install:
+    - pip install -U pytest
+
+before-script:
+    - docker-compose up --build -d
+    - sleep 10
+
+script:
+    - pytest
+
+after_success:
+    - docker login -u azureregistry -p azurepassword
+    - docker-compose push
+
+notifications:
+    email:
+        on_success: never
+        on_failure: never
