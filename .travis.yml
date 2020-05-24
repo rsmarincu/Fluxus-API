@@ -19,7 +19,7 @@ script:
     - pytest
 
 after_success:
-    - docker login -u azureregistry -p azurepassword
+    - docker login azureregistry -u azureregistryusername -p azurepassword
     - docker-compose push
 
 notifications:
