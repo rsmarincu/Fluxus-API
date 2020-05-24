@@ -1,4 +1,3 @@
-import requests
 
 assert 1 == 1
 # def test_get_message():
