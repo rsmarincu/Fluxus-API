@@ -30,10 +30,10 @@ class Subtract(Resource):
         return to_return
 
 
-api.add_resource(Add,'/math/add/')
-api.add_resource(Subtract,'/math/subtract/')
+api.add_resource(Add,'/add/')
+api.add_resource(Subtract,'/subtract/')
 
-api.add_resource(GetMessage,'/math/')
+api.add_resource(GetMessage,'/hello/')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    app.run(debug=True, host='0.0.0.0', port='5000')

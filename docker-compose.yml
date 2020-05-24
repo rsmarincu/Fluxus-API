@@ -1,8 +1,26 @@
 version: '3'
 
 services:
-    math:
-        build: ./src/math
+    reverse-proxy:
+        image: fluxusregistry.azurecr.io/nginx:latest
+        build:
+            context: ./src/reverse-proxy
+        depends_on:
+            - math-api
+            - pandas-api
         ports:
-            - 5000:3000
-        image: fluxusregistry.azurecr.io/fluxus:latest
+            - 80:80
+    math-api:
+        image: fluxusregistry.azurecr.io/math-api:latest
+        container_name: math-api
+        build: 
+            context: ./src/math
+        ports:
+            - 5000:5000
+    pandas-api:
+        image: fluxusregistry.azurecr.io/pandas-api:latest
+        container_name: pandas-api
+        build: 
+            context: ./src/pandas
+        ports:
+            - 5001:5001

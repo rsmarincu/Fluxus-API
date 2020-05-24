@@ -6,6 +6,8 @@ RUN pip install pipenv
 
 RUN cd /src/math/ && pipenv install --system --deploy
 
+EXPOSE 5000
+
 ENTRYPOINT ["python"]
 
 CMD ["/src/math/math-api.py"] 
