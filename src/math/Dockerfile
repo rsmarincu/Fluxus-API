@@ -1,11 +1,11 @@
 FROM python:3.8.2
 
-COPY ./math .
+COPY . /src/math/
 
 RUN pip install pipenv
 
-RUN pipenv install --system --deploy --ignore-pipfile
+RUN cd /src/math/ && pipenv install --system --deploy
 
 ENTRYPOINT ["python"]
 
-CMD ["math.py"]
+CMD ["/src/math/math-api.py"] 
