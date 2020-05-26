@@ -10,6 +10,7 @@ flask = "*"
 flask-cors = "*"
 flask-restful = "*"
 pandas = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.8"

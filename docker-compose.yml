@@ -8,6 +8,7 @@ services:
         depends_on:
             - math-api
             - pandas-api
+            - visualisation-api
         ports:
             - 80:80
     math-api:
@@ -24,3 +25,11 @@ services:
             context: ./src/pandas
         ports:
             - 5001:5001
+    visualisation-api:
+        image: fluxusregistry.azurecr.io/visualisation-api:latest
+        container_name: visualisation-api
+        build: 
+            context: ./src/visualisation
+        ports:
+            - 5002:5002
+        
