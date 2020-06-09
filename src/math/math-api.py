@@ -23,6 +23,8 @@ class Add(Resource):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x + y), args['as'])
+        elif len(args['bs']) == 1:
+            to_return = [x + args['bs'][0] for x in args['as']]
         else:
             to_return = list(map(lambda x, y : x + y, args['as'] ,args['bs']))
         return to_return
@@ -32,6 +34,8 @@ class Subtract(Resource):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x - y), args['as'])
+        elif len(args['bs']) == 1:
+            to_return = [x - args['bs'][0] for x in args['as']]
         else:
             to_return = list(map(lambda x, y : x - y, args['as'] ,args['bs']))
         return to_return
@@ -41,6 +45,8 @@ class Multiply(Resource):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x * y), args['as'])
+        elif len(args['bs']) == 1:
+            to_return = [x * args['bs'][0] for x in args['as']]
         else:
             to_return = list(map(lambda x, y : x * y, args['as'] ,args['bs']))
         return to_return
@@ -50,6 +56,8 @@ class Divide(Resource):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x / y), args['as'])
+        elif len(args['bs']) == 1:
+            to_return = [x / args['bs'][0] for x in args['as']]
         else:
             to_return = list(map(lambda x, y : x / y, args['as'] ,args['bs']))
         return to_return
