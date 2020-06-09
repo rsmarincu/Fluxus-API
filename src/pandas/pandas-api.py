@@ -60,7 +60,7 @@ class DropNaN(Resource):
 api.add_resource(Hello,'/hello/')
 api.add_resource(Labels,'/labels/')
 api.add_resource(Columns,'/columns/')
-api.add_resource(CountNan,'/countnan/')
+api.add_resource(CountNaN,'/countnan/')
 api.add_resource(DropNaN,'/dropnan/')
 
 if __name__ == '__main__':
