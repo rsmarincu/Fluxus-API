@@ -7,9 +7,12 @@ verify_ssl = true
 
 [packages]
 flask = "*"
-flask-cors = "*"
-flask-restful = "*"
-pandas = "*"
+graphene = "*"
+flask-graphql = "*"
+py2neo = "*"
+environs = "*"
+openml = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.8"

@@ -38,9 +38,30 @@ class Columns(Resource):
         resp.headers["Content-Type"] = "text/csv"   
         return resp
 
+class CountNaN(Resource):
+    def post(self):
+        data = parser.parse_args()
+        file_ = data['file']
+        csvfile = pd.read_csv(file_.stream)
+        nans = csvfile.isnull().sum(axis = 0)
+        return nans 
+    
+class DropNaN(Resource):
+    def post(self):
+        data = parser.parse_args()
+        file_ = data['file']
+        csvfile = pd.read_csv(file_.stream)
+        dataset = csvfile.dropna()
+        resp = make_response(dataset.to_csv())
+        resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
+        resp.headers["Content-Type"] = "text/csv"   
+        return resp 
+
 api.add_resource(Hello,'/hello/')
 api.add_resource(Labels,'/labels/')
 api.add_resource(Columns,'/columns/')
+api.add_resource(CountNaN,'/countnan/')
+api.add_resource(DropNaN,'/dropnan/')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

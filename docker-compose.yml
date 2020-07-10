@@ -9,6 +9,8 @@ services:
             - math-api
             - pandas-api
             - visualisation-api
+            - database
+            - graphql
         ports:
             - 80:80
     math-api:
@@ -32,4 +34,26 @@ services:
             context: ./src/visualisation
         ports:
             - 5002:5002
-        
+    database:
+        image: neo4j:3.5.11
+        container_name: database
+        environment: 
+            - NEO4J_AUTH=none
+        ports:
+            - 7474:7474
+            - 7687:7687
+        volumes: 
+            - $HOME/neo4j/data:/data neo4j
+    graphql:
+        container_name: graphql
+        build:
+            context: ./src/database
+            dockerfile: Dockerfile
+        environment: 
+            - NEO4J_HOST=neo4j
+            - NEO4J_PORT=7687
+            - BIND_HOST=0.0.0.0
+            - BIND_PORT=8080
+            - PYTHONUNBUFFERED=1
+        ports:
+            - 8080:8080
