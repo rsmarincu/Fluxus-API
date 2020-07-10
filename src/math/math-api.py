@@ -19,7 +19,7 @@ class Hello(Resource):
         return {"message":"Hello from the math endpoint"}
 
 class Add(Resource):
-    def post(self):
+    def get(self):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x + y), args['as'])
@@ -28,7 +28,7 @@ class Add(Resource):
         return to_return
 
 class Subtract(Resource):
-    def post(self):
+    def get(self):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x - y), args['as'])
@@ -37,7 +37,7 @@ class Subtract(Resource):
         return to_return
 
 class Multiply(Resource):
-    def post(self):
+    def get(self):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x * y), args['as'])
@@ -46,7 +46,7 @@ class Multiply(Resource):
         return to_return
 
 class Divide(Resource):
-    def post(self):
+    def get(self):
         args = parser.parse_args()
         if args['bs'] == None:
             to_return = reduce((lambda x, y: x / y), args['as'])
