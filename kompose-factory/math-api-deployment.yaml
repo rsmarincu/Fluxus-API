@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: kompose convert
+    kompose.cmd: kompose convert -o kompose-factory
     kompose.version: 1.21.0 (992df58d8)
   creationTimestamp: null
   labels:
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       annotations:
-        kompose.cmd: kompose convert
+        kompose.cmd: kompose convert -o kompose-factory
         kompose.version: 1.21.0 (992df58d8)
       creationTimestamp: null
       labels:
@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - image: fluxusregistry.azurecr.io/math-api:latest
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: math-api
         ports:
         - containerPort: 5000

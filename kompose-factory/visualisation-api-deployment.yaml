@@ -2,33 +2,33 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: kompose convert
+    kompose.cmd: kompose convert -o kompose-factory
     kompose.version: 1.21.0 (992df58d8)
   creationTimestamp: null
   labels:
-    io.kompose.service: reverse-proxy
-  name: reverse-proxy
+    io.kompose.service: visualisation-api
+  name: visualisation-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: reverse-proxy
+      io.kompose.service: visualisation-api
   strategy: {}
   template:
     metadata:
       annotations:
-        kompose.cmd: kompose convert
+        kompose.cmd: kompose convert -o kompose-factory
         kompose.version: 1.21.0 (992df58d8)
       creationTimestamp: null
       labels:
-        io.kompose.service: reverse-proxy
+        io.kompose.service: visualisation-api
     spec:
       containers:
-      - image: fluxusregistry.azurecr.io/nginx:latest
-        imagePullPolicy: ""
-        name: reverse-proxy
+      - image: fluxusregistry.azurecr.io/visualisation-api:latest
+        imagePullPolicy: IfNotPresent
+        name: visualisation-api
         ports:
-        - containerPort: 80
+        - containerPort: 5002
         resources: {}
       restartPolicy: Always
       serviceAccountName: ""

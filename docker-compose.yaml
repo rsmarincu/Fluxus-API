@@ -13,6 +13,8 @@ services:
             - graphql
         ports:
             - 80:80
+        labels:
+            kompose.service.type: nodeport
     math-api:
         image: fluxusregistry.azurecr.io/math-api:latest
         container_name: math-api
@@ -45,6 +47,7 @@ services:
         volumes: 
             - $HOME/neo4j/data:/data neo4j
     graphql:
+        image: fluxusregistry.azurecr.io/graphql:latest
         container_name: graphql
         build:
             context: ./src/database
