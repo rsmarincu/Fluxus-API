@@ -1,36 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -o kompose-factory
-    kompose.version: 1.21.0 (992df58d8)
-  creationTimestamp: null
   labels:
-    io.kompose.service: pandas-api
+    name: pandas-api
   name: pandas-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: pandas-api
-  strategy: {}
+      app: pandas-api
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -o kompose-factory
-        kompose.version: 1.21.0 (992df58d8)
-      creationTimestamp: null
       labels:
-        io.kompose.service: pandas-api
+        app: pandas-api
     spec:
       containers:
-      - image: fluxusregistry.azurecr.io/pandas-api:latest
-        imagePullPolicy: IfNotPresent
-        name: pandas-api
-        ports:
-        - containerPort: 5001
-        resources: {}
+      - name: pandas-api
+        image: rsmarincu/pandas-api:latest
       restartPolicy: Always
-      serviceAccountName: ""
-      volumes: null
-status: {}

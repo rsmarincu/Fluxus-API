@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: minikube-ingress
+  annotations:
+    ncp/use-regex: "True"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - host: fluxus.ml
+    http:
+      paths:
+      - path: /math/(.*)
+        backend:
+          serviceName: math-api
+          servicePort: 5000
+      - path: /pandas/(.*)
+        backend:
+          serviceName: pandas-api
+          servicePort: 5001
+      - path: /visualisation/(.*)
+        backend:
+            serviceName: visualisation-api
+            servicePort: 5002
+      - path: /graphql/(.*)
+        backend:
+            serviceName: graphql
+            servicePort: 8080
+      - path: /database/(.*)
+        backend:
+            serviceName: database
+            servicePort: 7474

@@ -1,19 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -o kompose-factory
-    kompose.version: 1.21.0 (992df58d8)
-  creationTimestamp: null
-  labels:
-    io.kompose.service: pandas-api
   name: pandas-api
+  labels:
+    service: pandas-api
 spec:
-  ports:
-  - name: "5001"
-    port: 5001
-    targetPort: 5001
   selector:
-    io.kompose.service: pandas-api
-status:
-  loadBalancer: {}
+    app: pandas-api
+  ports:
+  - port: 5001
+    targetPort: 5001

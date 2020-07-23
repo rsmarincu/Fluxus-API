@@ -1,30 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -o kompose-factory
-    kompose.version: 1.21.0 (992df58d8)
-  creationTimestamp: null
   labels:
-    io.kompose.service: graphql
+    app: graphql
   name: graphql
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: graphql
-  strategy: {}
+      app: graphql
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -o kompose-factory
-        kompose.version: 1.21.0 (992df58d8)
-      creationTimestamp: null
       labels:
-        io.kompose.service: graphql
+        app: graphql
     spec:
       containers:
-      - env:
+      - name: graphql
+        image: rsmarincu/graphql:latest
+        env:
         - name: BIND_HOST
           value: 0.0.0.0
         - name: BIND_PORT
@@ -35,13 +28,4 @@ spec:
           value: "7687"
         - name: PYTHONUNBUFFERED
           value: "1"
-        image: fluxusregistry.azurecr.io/graphql:latest
-        imagePullPolicy: ""
-        name: graphql
-        ports:
-        - containerPort: 8080
-        resources: {}
       restartPolicy: Always
-      serviceAccountName: ""
-      volumes: null
-status: {}

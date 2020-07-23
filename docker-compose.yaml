@@ -2,7 +2,7 @@ version: '3'
 
 services:
     reverse-proxy:
-        image: fluxusregistry.azurecr.io/nginx:latest
+        image: rsmarincu/nginx:latest
         build:
             context: ./src/reverse-proxy
         depends_on:
@@ -16,21 +16,21 @@ services:
         labels:
             kompose.service.type: nodeport
     math-api:
-        image: fluxusregistry.azurecr.io/math-api:latest
+        image: rsmarincu/math-api:latest
         container_name: math-api
         build: 
             context: ./src/math
         ports:
             - 5000:5000
     pandas-api:
-        image: fluxusregistry.azurecr.io/pandas-api:latest
+        image: rsmarincu/pandas-api:latest
         container_name: pandas-api
         build: 
             context: ./src/pandas
         ports:
             - 5001:5001
     visualisation-api:
-        image: fluxusregistry.azurecr.io/visualisation-api:latest
+        image: rsmarincu/visualisation-api:latest
         container_name: visualisation-api
         build: 
             context: ./src/visualisation
@@ -47,7 +47,7 @@ services:
         volumes: 
             - $HOME/neo4j/data:/data neo4j
     graphql:
-        image: fluxusregistry.azurecr.io/graphql:latest
+        image: rsmarincu/graphql:latest
         container_name: graphql
         build:
             context: ./src/database

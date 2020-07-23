@@ -64,4 +64,4 @@ api.add_resource(CountNaN,'/countnan/')
 api.add_resource(DropNaN,'/dropnan/')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port='5001')
