@@ -1,11 +1,10 @@
 import openml
 import numpy as np 
-from app.neo4j.openml_model import Dataset, Task, Flow, Run
+from app.neo4j.openml_model import Dataset, Task, Flow, Run, graph
 from itertools import combinations
 import math
-import pprint
 
-pp = pprint.PrettyPrinter(indent=4)
+print(graph)
 
 def compare_dataset(d1, d2):
     d_1 = openml.datasets.get_dataset(d1)
@@ -75,10 +74,11 @@ def populate(limit):
 
 def populate_datasets(limit):
 
-    datasets = get_datasets(limit)
-    current = list(Dataset().all)
 
+    
     for dataset in datasets:
+        datasets = get_datasets(limit)
+        current = list(Dataset().all)
         dataset_obj = Dataset(did=dataset['did']).fetch()
         if dataset_obj in current:
             connections = dataset_obj.get_connections()
@@ -100,6 +100,7 @@ def populate_datasets(limit):
                 file_format=dataset['format'],
             )
             print(f"Created new {new}.")
+            new.save()
             for to_connect in current:
                     print(f"Connecting {to_connect} to {new}.")
                     distance = compare_dataset(dataset['did'], to_connect.did)
@@ -130,16 +131,15 @@ def populate_tasks():
                 print(f"Adding new task {task_obj}")
                 dataset.add_task(task_obj)
 
-def populate_flows(offset):
-    flows = get_tasks(offset)
-    for flow in flows:
-        f = flows.get_flow(flow['flow_id'])
-        ti =
-    pass
+# def populate_flows(offset):
+#     flows = get_tasks(offset)
+#     for flow in flows:
+#         f = flows.get_flow(flow['flow_id'])
+#         ti =
+#     pass
 
 
-#populate_tasks()
-pp.pprint(get_runs(5))
+populate_datasets(50)
 
 
     
