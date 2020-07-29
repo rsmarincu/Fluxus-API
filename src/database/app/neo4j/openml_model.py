@@ -8,10 +8,9 @@ import random, math
 
 
 graph = Graph(
-    host=settings.NEO4J_HOST,
-    port=settings.NEO4J_PORT,
-    user=settings.NEO4J_USER,
-    password=settings.NEO4J_PASSWORD,
+    host="51.132.245.212",
+    http_port=7474,
+    bolt=False
 )
 
 class BaseModel(GraphObject):
