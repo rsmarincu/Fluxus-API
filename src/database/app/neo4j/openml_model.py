@@ -54,7 +54,6 @@ class Dataset(BaseModel):
             'did': self.did,
             'name': self.name,
             'file_format': self.file_format,
-            'target_name': self.target_name
         }
     
     def fetch(self):
@@ -86,10 +85,9 @@ class Dataset(BaseModel):
     def get_tasks(self):
         return self.tasks
 
-    def get_task(self, tid):
-        pass
+    def get_similar_tasks(self, task_type_id):
+        return [task for task in self.tasks if task.task_type_id == task_type_id]
 
-    
     
 class Task(BaseModel):
     __primarykey__ = "tid"
@@ -101,7 +99,7 @@ class Task(BaseModel):
     evaluation_measures = Property()
     estimation_procedure = Property()
     
-    flows = Related('Flow', 'USING')
+    evaluations = Related('Evaluation', 'SCORED')
 
     def __repr__(self):
         return f"Task ({self.tid}, {self.task_type})"
@@ -129,14 +127,23 @@ class Task(BaseModel):
         task = self.match(graph, self.tid).first()
         return task
     
-    def add_flow(self, flow):
-        self.flows.add(flow)
+    def add_evaluation(self, evaluation, score):
+        self.evaluations.add(evaluation, {
+            'score': score
+        })
         self.save()
     
     def get_task(self):
         task = tasks.get_task(self.tid)
         return task
     
+    def get_evaluations(self, limit):
+        target = self.match(graph, self.tid).first().__node__
+        rels = graph.relationships.match({target, None}, "SCORED").order_by("_.score")
+        connections = [Evaluation.wrap(rel.start_node) if rel.start_node != target else Evaluation.wrap(rel.end_node) for rel in rels]
+        connections.reverse()
+        return connections[:limit]
+
 class Flow(BaseModel):
     __primarykey__ = 'fid'
 
@@ -189,18 +196,20 @@ class Flow(BaseModel):
         self.runs.add(run)
         self.save()
 
-class Run(BaseModel):
+class Evaluation(BaseModel):
     __primarykey__ = 'rid'
 
     rid = Property()
     accuracy = Property()
     setup_id = Property()
+    flow_id = Property()
+    flow_name = Property()
 
     def __repr__(self):
-        return f"Run ({self.rid}, {self.accuracy})"
+        return f"Evaluation ({self.rid}, {self.accuracy})"
     
     def __eq__(self, other):
-        if isinstance(other, Run):
+        if isinstance(other, Evaluation):
             return ((self.rid == other.rid) and (self.accuracy == other.accuracy))
         else:
             return False
@@ -212,15 +221,13 @@ class Run(BaseModel):
         return {
             'rid': self.rid,
             'accuracy': self.accuracy,
-            'setupd_id': self.setup_id,
+            'setup_id': self.setup_id,
+            'flow_id': self.flow_id,
+            'flow_name': self.flow_name
         }
     
     def fetch(self):
-        run = self.match(graph, self.rid).first()
-        return run
-    
-    def get_run(self):
-        run = runs.get_run(self.rid)
-        return run
+        evaluation = self.match(graph, self.rid).first()
+        return evaluation
     
     

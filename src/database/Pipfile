@@ -8,11 +8,11 @@ verify_ssl = true
 [packages]
 flask = "*"
 graphene = "*"
-flask-graphql = "*"
 py2neo = "*"
 environs = "*"
 openml = "*"
 numpy = "*"
+flask-graphql = "*"
 
 [requires]
 python_version = "3.8"
