@@ -5,8 +5,4 @@ from app import settings
 app = create_app(schema)
 
 if __name__ == '__main__':
-    app.run(
-        host=settings.BIND_HOST,
-        port=settings.BIND_PORT,
-        debug=True
-    )
+    app.run(port="8080", host="0.0.0.0")

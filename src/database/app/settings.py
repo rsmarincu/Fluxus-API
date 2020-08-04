@@ -4,7 +4,7 @@ from environs import Env
 env = Env()
 
 
-BIND_HOST = env('BIND_HOST', default='127.0.0.1')
+BIND_HOST = env('BIND_HOST', default='0.0.0.0')
 BIND_PORT = env.int('BIND_PORT', default=5000)
 
 NEO4J_HOST = env('NEO4J_HOST', default='51.11.6.65')
