@@ -9,7 +9,6 @@ import sys
 import re, os 
 import importlib, site
 import sklearn
-import pickle
 import pip
 
 
@@ -110,4 +109,4 @@ api.add_resource(Load,'/load/')
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0') 
+    app.run(host='0.0.0.0', port="5006") 

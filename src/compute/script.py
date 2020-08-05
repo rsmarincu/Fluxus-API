@@ -7,7 +7,6 @@ import subprocess
 import sys
 import re, os 
 import importlib, site
-import pickle
 import pip
 
 

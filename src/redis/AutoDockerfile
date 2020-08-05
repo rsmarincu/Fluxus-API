@@ -1,0 +1,9 @@
+FROM python:3.8.2
+
+RUN pip install kubernetes
+
+COPY ./auto.py /auto.py
+COPY ./job.yaml /job.yaml
+
+
+CMD  python auto.py
