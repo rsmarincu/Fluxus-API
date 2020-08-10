@@ -8,7 +8,8 @@ import sys
 import re, os 
 import importlib, site
 import pip
-
+import rediswq
+import pickle
 
 app = Flask(__name__)
 api = Api(app)
@@ -20,6 +21,7 @@ openml.config.set_cache_directory(os.path.expanduser('~/.openml/cache'))
 parser = reqparse.RequestParser()
 parser.add_argument('flow', type=int, location='json')
 parser.add_argument('task', type=int, location='json')
+parser.add_argument('session_id', type=str, location='json')
 
 class Status(Resource):
     def get(self):
@@ -28,31 +30,43 @@ class Status(Resource):
 class Compute(Resource):
     def post(self):
         args = parser.parse_args()
-        print(args, file=sys.stdout)
-        flowid = args['flow']
-        taskid = args['task']
 
-        flow = openml.flows.get_flow(flowid, reinstantiate=True, strict_version=False)
-        task = openml.tasks.get_task(taskid)
+        session_id = args['session_id']
 
+        q = rediswq.RedisWQ(
+            name=session_id, 
+            host="20.49.225.191",
+            port="6379")
+        
+        if not q.empty():
+            item = q.lease(lease_secs=10, block=True, timeout=2) 
+            if item is not None:
+                tuple_ = pickle.loads(item)
+                flow_id = tuple_[0]
+                task_id = tuple_[1]
 
-        dataset = task.get_dataset()
-        tti = task.task_type_id    
-        ep = task.estimation_procedure_id
-        em = task.evaluation_measure
+                flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+                task = openml.tasks.get_task(task_id)
 
-        model = flow.model
+                dataset = task.get_dataset()
+                tti = task.task_type_id    
+                ep = task.estimation_procedure_id
+                em = task.evaluation_measure
 
-        X, y, categorical_indicator, attribute_names = dataset.get_data(
-            dataset_format='array',
-            target=dataset.default_target_attribute
-        )
+                model = flow.model
 
-        model.fit(X, y)
-        preds = model.predict(X)
-        score = mean_squared_error(y, preds)
+                X, y, categorical_indicator, attribute_names = dataset.get_data(
+                    dataset_format='array',
+                    target=dataset.default_target_attribute
+                )
 
-        return score
+                model.fit(X, y)
+                preds = model.predict(X)
+                score = mean_squared_error(y, preds)
+
+                q.complete(item)
+
+                return score
 
 api.add_resource(Status,'/')
 api.add_resource(Compute,'/compute/')

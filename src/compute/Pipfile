@@ -12,6 +12,10 @@ openml = "*"
 numpy = "*"
 pandas = "*"
 flask-restful = "*"
+kubernetes = "*"
+pyyaml = "*"
+gql = "*"
+redis = "*"
 
 [requires]
 python_version = "3.8"

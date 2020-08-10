@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: worker
+spec:
+  completions: null
+  parallelism: 1
+  template:
+    metadata:
+      name: worker
+    spec:
+      containers:
+      - name: c
+        image: fluxuscontainerregistry.azurecr.io/worker:latest
+      restartPolicy: OnFailure 

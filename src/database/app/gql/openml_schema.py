@@ -40,10 +40,15 @@ class Query(graphene.ObjectType):
     close_connections = graphene.List(lambda:DatasetSchema, did=graphene.Int(), distance=graphene.Int())
     similar_tasks = graphene.List(lambda: TaskSchema, did=graphene.Int(), task_type_id=graphene.Int())
     evaluations = graphene.List(lambda: EvaluationSchema, tid=graphene.Int(), limit=graphene.Int())
+    task = graphene.Field(lambda: TaskSchema, tid=graphene.Int())
 
     def resolve_dataset(self, info, did):
         dataset = Dataset(did=did).fetch()
         return DatasetSchema(**dataset.as_dict())
+
+    def resolve_task(self, info, tid):
+        task = Task(tid=tid).fetch()
+        return TaskSchema(**task.as_dict())
     
     def resolve_datasets(self, info):
         return [DatasetSchema(**dataset.as_dict()) for dataset in Dataset().all]
