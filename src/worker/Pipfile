@@ -6,10 +6,10 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-flask = "*"
-flask-cors = "*"
-flask-restful = "*"
 pandas = "*"
+scikit-learn = "*"
+openml = "*"
+redis = "*"
 
 [requires]
 python_version = "3.8"

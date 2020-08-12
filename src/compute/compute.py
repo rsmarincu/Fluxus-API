@@ -5,6 +5,7 @@ from kubernetes import client as kclient
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
 from string import Template
+from flask_cors import CORS
 
 import requests
 import openml
@@ -16,8 +17,11 @@ import pip
 import json
 import yaml
 import rediswq
+import itertools
+import pickle
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
 openml.config.apikey = '451234759bbada8dfaeb365266da9735'
@@ -95,13 +99,15 @@ def set_jobs(number, session_id):
         job_file = yaml.load(f)
     
     job_file['spec']['parallelism'] = number
+    job_file['spec']['completions'] = number
+
     job_file['spec']['template']['spec']['containers'][0]['env'][1]['value'] = session_id
 
     with open (file_path, 'w') as f:
         yaml.dump(job_file, f)
 
 def create_job(size):
-    config.load_kube_config()
+    config.load_incluster_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
 
@@ -130,23 +136,35 @@ def create_job(size):
             func=core.list_namespaced_pod,
             label_selector=pod_label_selector,
             namespace=namespace,
-            timeout_seconds=60):
+            timeout_seconds=30):
             if event['object'].status.phase == "Succeeded":
-                pod = event['object'].metadata.name
-                pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
-                pod_log = pod_log_response.data
-                data = json.loads(pod_log)
+                try:
+                    pod = event['object'].metadata.name
+                    pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
+                    pod_log = pod_log_response.data
+                    data = json.loads(pod_log)
+                    core.delete_namespaced_pod(name=pod, namespace=namespace)
+                except kclient.rest.ApiException as e:
+                    print(e)
+                    data = {
+                        'flow': None,
+                        'task': None,
+                        'score': None 
+                    }
                 results.append(data)
+                print(data)
                 if len(results) == size:
                     w.stop()
                     return results
 
-def delete_job(name):
-    config.load_kube_config()
 
+def delete_job(name):
+    config.load_incluster_config()
+    body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
     api.delete_namespaced_job(
         name=name,
+        body=body,
         namespace='default'
     )   
 
@@ -184,19 +202,35 @@ class Load(Resource):
 
         flows = set()
 
-        for tid in tasks_to_check:
+        for t in tasks_to_check:
             evals = client.execute(gql(evaluations.substitute(
-                tid=tid,
+                tid=t,
                 limit=1
             )))
             for e in evals['evaluations']:
                 flows.add(e['flow_id'])
 
+
         jobs = len(flows)
-        redis.add_items(list(flows), str(session_id))
+
+
+        items = zip(list(flows), itertools.repeat(tid))
+        pickled = [pickle.dumps(t) for t in list(items)]
+        redis.add_items(pickled, str(session_id))
         set_jobs(jobs, session_id)
         results = create_job(jobs)
+        
+        max_ = 1
+        top = {}
+
+        for result in results:
+            if result['flow'] is not None:
+                if result['score']  < max_ and result['score'] > 0:
+                    max_ = result['score']
+                    top = result
+
         delete_job("job-wq-2")
+        print(results)
         return results
 
 

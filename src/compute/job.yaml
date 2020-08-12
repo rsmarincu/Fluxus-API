@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: job-wq-2
 spec:
+  completions: 14
   parallelism: 14
   template:
     metadata:
@@ -13,8 +14,7 @@ spec:
         - name: PYTHONUNBUFFERED
           value: '0'
         - name: SESSION_ID
-          value: '1'
+          value: '35'
         image: fluxuscontainerregistry.azurecr.io/job-wq:latest
         name: c
-      restartPolicy: OnFailure
-  ttlSecondsAfterFinished: 10
+      restartPolicy: Never
