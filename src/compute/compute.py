@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import Resource, Api, reqparse
-from sklearn.metrics import roc_auc_score, accuracy_score
-from kubernetes import client, config, utils
+from kubernetes import config, utils, watch
+from kubernetes import client as kclient
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
 from string import Template
@@ -12,7 +12,6 @@ import subprocess
 import sys
 import re, os 
 import importlib, site
-import sklearn
 import pip
 import json
 import yaml
@@ -52,7 +51,12 @@ similar_tasks = Template("""
 
 evaluations = Template("""
 {
-    evaluations(tid:$tid, limit:$limit)
+    evaluations(tid:$tid, limit:$limit) {
+        rid,
+        accuracy,
+        flow_id,
+        flow_name
+    }
 }
 """)
 
@@ -85,18 +89,22 @@ def get_dependencies(dependencies):
     
     return dep_list
 
-def set_jobs(number):
+def set_jobs(number, session_id):
     file_path = 'job.yaml'
     with open (file_path) as f:
         job_file = yaml.load(f)
     
     job_file['spec']['parallelism'] = number
+    job_file['spec']['template']['spec']['containers'][0]['env'][1]['value'] = session_id
 
     with open (file_path, 'w') as f:
         yaml.dump(job_file, f)
 
-def create_job():
-    api = client.ApiClient()
+def create_job(size):
+    config.load_kube_config()
+    api = kclient.ApiClient()
+    core = kclient.CoreV1Api()
+
     namespace = 'default'
     file_path = 'job.yaml'
     
@@ -106,23 +114,41 @@ def create_job():
         print("already exists")
 
 
-    batch = client.BatchV1Api()
+    batch = kclient.BatchV1Api()
     job = batch.read_namespaced_job(name="job-wq-2", namespace=namespace)
     controller_uid = job.metadata.labels["controller-uid"]
 
-    core = client.CoreV1Api()
-
     pod_label_selector = "controller-uid=" + controller_uid
     pods_list = core.list_namespaced_pod(namespace=namespace, label_selector=pod_label_selector)
-    pod = pods_list.items[0].metadata.name
+    pods = pods_list.items
+    results = []
 
-    try:
-        pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
-        pod_log = pod_log_response.data.decode("utf-8")
-        data = json.loads(pod_log)
-        return data
-    except client.rest.ApiException as e:
-        print("Exception when calling CoreV1Api->read_namespaced_pod_log: %s\n" % e)
+    w = watch.Watch()
+
+    while True:
+        for event in w.stream(
+            func=core.list_namespaced_pod,
+            label_selector=pod_label_selector,
+            namespace=namespace,
+            timeout_seconds=60):
+            if event['object'].status.phase == "Succeeded":
+                pod = event['object'].metadata.name
+                pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
+                pod_log = pod_log_response.data
+                data = json.loads(pod_log)
+                results.append(data)
+                if len(results) == size:
+                    w.stop()
+                    return results
+
+def delete_job(name):
+    config.load_kube_config()
+
+    api = kclient.BatchV1Api()
+    api.delete_namespaced_job(
+        name=name,
+        namespace='default'
+    )   
 
 class Load(Resource):
     def post(self):
@@ -140,57 +166,41 @@ class Load(Resource):
 
         task = openml.tasks.get_task(tid)
 
-        print(task.task_type_id)
         redis = rediswq.RedisWQ(
             name=session_id, 
             host="20.49.225.191",
             port="6379")
 
         datasets = client.execute(gql(close_connections.substitute(did=did, distance=1000)))
-       
+        tasks_to_check = set()
+
         for dataset in datasets['close_connections']:
             tasks = client.execute(gql(similar_tasks.substitute(
                 did=dataset['did'],
                 task_type_id=task.task_type_id
             )))
-            print(tasks)
+            for t in tasks['similar_tasks']:     
+                tasks_to_check.add(t['tid'])
+
+        flows = set()
+
+        for tid in tasks_to_check:
+            evals = client.execute(gql(evaluations.substitute(
+                tid=tid,
+                limit=1
+            )))
+            for e in evals['evaluations']:
+                flows.add(e['flow_id'])
+
+        jobs = len(flows)
+        redis.add_items(list(flows), str(session_id))
+        set_jobs(jobs, session_id)
+        results = create_job(jobs)
+        delete_job("job-wq-2")
+        return results
 
 
-
-        # for dependency in dependencies:
-        #     if dependency['version'] == 'latest':
-        #         subprocess.check_call([sys.executable, '-m', 'pip', 'install', dependency['name']])
-        #     else:
-        #         to_install = dependency['name'] + '==' + dependency['version']
-        #         subprocess.check_call([sys.executable, '-m', 'pip', 'install', to_install])
-
-        # payload = {
-        #         "flow":flowid,
-        #         "task":taskid
-        #     }
-        # headers = {
-        #         'Content-Type': 'application/json'
-        #     }
-        
-        # url = "http://0.0.0.0:1234/"
-        # url_compute = "http://0.0.0.0:1234/compute/"
-        # score = None
-
-        # try:
-        #     check = requests.get(url)
-        #     score = requests.post(url_compute, headers=headers, json=payload)
-        # except:
-        #     subprocess.Popen([sys.executable, '-u', 'script.py'])
-        
-        # while score is None:
-        #     try:
-        #         score = requests.post(url_compute , headers=headers, json=payload)
-        #     except:
-        #         pass
-            
-
-        # return score.json()
-        
+    
 api.add_resource(Load,'/load/')
 
 

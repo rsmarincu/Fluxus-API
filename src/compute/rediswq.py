@@ -112,4 +112,6 @@ class RedisWQ(object):
         # not be here, which is fine.  So this does not need to be a transaction.
         itemkey = self._itemkey(value)
         self._db.delete(self._lease_key_prefix + itemkey)
-
+    
+    def add_items(self, items, session_id):
+        self._db.rpush(session_id, *items)

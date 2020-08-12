@@ -4,10 +4,16 @@ import os
 import json
 import pathlib
 
+try: 
+  session_id = os.environ['SESSION_ID']
+except KeyError:
+  session_id = 'default'
+
 q = rediswq.RedisWQ(
-    name="temperature_job", 
+    name=session_id, 
     host="20.49.225.191",
-    port="6379")
+    port="6379"
+    )
 
 output = {}
 

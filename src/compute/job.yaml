@@ -1,15 +1,20 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: worker
+  name: job-wq-2
 spec:
-  completions: null
-  parallelism: 1
+  parallelism: 14
   template:
     metadata:
-      name: worker
+      name: job-wq-2
     spec:
       containers:
-      - name: c
-        image: fluxuscontainerregistry.azurecr.io/worker:latest
-      restartPolicy: OnFailure 
+      - env:
+        - name: PYTHONUNBUFFERED
+          value: '0'
+        - name: SESSION_ID
+          value: '1'
+        image: fluxuscontainerregistry.azurecr.io/job-wq:latest
+        name: c
+      restartPolicy: OnFailure
+  ttlSecondsAfterFinished: 10
