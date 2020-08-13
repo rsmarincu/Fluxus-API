@@ -3,15 +3,36 @@ from py2neo.ogm import GraphObject, Property, Related
 from py2neo.data import walk
 from app import settings
 from openml import datasets, flows, runs, tasks
+from threading import Thread
 
+import numpy as np
 import random, math
-
+import openml
 
 graph = Graph(
     host="51.132.245.212",
     http_port=7474,
     bolt=False
 )
+
+def compare_dataset(d1, d2):
+    try:
+        d_1 = openml.datasets.get_dataset(d1)
+        d_2 = openml.datasets.get_dataset(d2)
+    except openml.exceptions.OpenMLCacheException:
+        return None
+
+    mf_1 = d_1.qualities
+    mf_2 = d_2.qualities
+    norm = []
+    mf = list(set(mf_1).intersection(mf_2))
+
+    for f in mf:
+        if not math.isnan(mf_1[f]) and not math.isnan(mf_2[f]):
+            norm.append(mf_1[f] - mf_2[f])
+    
+    norm = np.array(norm, dtype='float64')
+    return np.linalg.norm(norm)
 
 class BaseModel(GraphObject):
 
@@ -68,6 +89,24 @@ class Dataset(BaseModel):
             }
         )
         self.save()
+    
+    def background_connect_all(self):
+        datasets = self.all
+        
+        for d in datasets:
+            print(d)
+            if d in self.connections:
+                continue
+            elif d == self.fetch():
+                continue
+            else:
+                distance = compare_dataset(self.did, d.did)
+                if distance is not None:
+                    self.add_connections(d, distance)
+
+    def connect_all(self):
+        b_thread = Thread(target=self.background_connect_all, args=())
+        b_thread.start()
 
     def get_connections(self):
         return self.connections

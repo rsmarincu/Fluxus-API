@@ -1,5 +1,12 @@
 import graphene
 from app.neo4j.openml_model import Dataset, Task, Evaluation
+import openml
+import os
+from threading import Thread
+
+openml.config.apikey = '451234759bbada8dfaeb365266da9735'
+openml.config.server = 'https://www.openml.org/api/v1'
+openml.config.set_cache_directory(os.path.expanduser('~/.openml/cache'))
 
 class DatasetSchema(graphene.ObjectType):
     did = graphene.Int()
@@ -72,4 +79,35 @@ class Query(graphene.ObjectType):
         task = Task(tid=tid).fetch()
         return task.get_evaluations(limit)
 
-schema = graphene.Schema(query=Query, auto_camelcase=False)
+class AddDataset(graphene.Mutation):
+    class Arguments:
+        did = graphene.Int()
+        name = graphene.String()
+        file_format = graphene.String()
+
+    ok = graphene.Boolean()
+    dataset = graphene.Field(lambda: DatasetSchema)
+
+    def mutate(self, info, did):
+
+        openml_dataset = openml.datasets.get_dataset(did)
+
+        dataset = Dataset(did=did).fetch()
+        if dataset is None:
+            dataset = Dataset(
+                did=did,
+                name=openml_dataset.name,
+                file_format=openml_dataset.format
+            )
+            dataset.save()
+            dataset.connect_all()
+        else:
+            dataset.connect_all()
+
+        return AddDataset(dataset=dataset, ok=True)
+
+class Mutations(graphene.ObjectType):
+    add_dataset = AddDataset.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=Mutations, auto_camelcase=False)

@@ -75,7 +75,8 @@ def populate(limit):
 def populate_datasets(limit):
 
 
-    
+    datasets = get_datasets(limit)
+
     for dataset in datasets:
         datasets = get_datasets(limit)
         current = list(Dataset().all)

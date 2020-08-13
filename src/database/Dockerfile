@@ -8,4 +8,4 @@ RUN cd /src/database/ && pipenv install --system --deploy
 
 ENTRYPOINT ["python"]
 
-CMD ["-u", "/src/database/run.py"] 
+CMD ["/src/database/run.py"] 
