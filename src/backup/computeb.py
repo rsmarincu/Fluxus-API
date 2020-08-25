@@ -181,7 +181,8 @@ def set_jobs(number, session_id):
         yaml.dump(job_file, f)
 
 def create_job(size):
-    config.load_incluster_config()
+    #config.load_incluster_config()
+    config.load_kube_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
 
@@ -234,7 +235,8 @@ def create_job(size):
 
 
 def delete_job(name):
-    config.load_incluster_config()
+   #config.load_incluster_config()
+    config.load_kube_config()
     body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
     api.delete_namespaced_job(

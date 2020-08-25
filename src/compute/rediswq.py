@@ -114,4 +114,5 @@ class RedisWQ(object):
         self._db.delete(self._lease_key_prefix + itemkey)
     
     def add_items(self, items, session_id):
+        print(items)
         self._db.rpush(session_id, *items)

@@ -9,6 +9,11 @@ verify_ssl = true
 flask = "*"
 redis = "*"
 kubernetes = "*"
+sklearn = "*"
+openml = "*"
+pandas = "*"
+flask-restful = "*"
+flask-cors = "*"
 
 [requires]
 python_version = "3.8"
