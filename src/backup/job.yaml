@@ -15,4 +15,4 @@ spec:
         env:
           - name: PYTHONUNBUFFERED
             value: "0"
-      restartPolicy: OnFailure 
+      restartPolicy: Never

@@ -14,8 +14,9 @@ spec:
         - name: PYTHONUNBUFFERED
           value: '0'
         - name: SESSION_ID
-          value: '76486'
+          value: '956213'
         image: fluxuscontainerregistry.azurecr.io/job-wq:latest
         name: c
       restartPolicy: Never
-  terminationGracePeriodSeconds: 120
+  terminationGracePeriodSeconds: 30
+  ttlSecondsAfterFinished: 10

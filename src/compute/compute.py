@@ -37,7 +37,7 @@ openml.config.set_cache_directory(os.path.expanduser('~/.openml/cache'))
 parser = reqparse.RequestParser()
 
 parser.add_argument('did', type=int, location='json')
-parser.add_argument('tid', type=int, location='json')
+parser.add_argument('ttid', type=int, location='json')
 parser.add_argument('session_id', type=str, location='json')
 
 parser.add_argument('task_type_id', type=int, location='json')
@@ -49,6 +49,7 @@ parser.add_argument('predict', type=list, location='json')
 
 active = []
 active_datasets = []
+
 
 transport = RequestsHTTPTransport("http://fluxusml.com/graphql/interface")
 client = Client(transport=transport)
@@ -93,14 +94,15 @@ evaluations = Template("""
 
 def format_test(dataset, test, attribute_names):
     df = pd.DataFrame([test])
+    df.columns = attribute_names
 
-    df.columns = dataset.columns.values.tolist()
     dataset = dataset.append(df.loc[0], ignore_index=True)
     le = preprocessing.LabelEncoder()
 
     for i, label in enumerate(attribute_names):
         if dataset.dtypes[i] == 'object':
             dataset[label] = le.fit_transform(dataset[label])
+
     row = dataset.tail(1)
 
     return row
@@ -167,20 +169,20 @@ def get_dependencies(dependencies):
     
     return dep_list
 
-def set_jobs(number, session_id):
+def set_jobs(number, session_id, ):
     file_path = 'job.yaml'
     with open (file_path) as f:
         job_file = yaml.load(f)
     
     job_file['spec']['parallelism'] = number
     job_file['spec']['completions'] = number
-
     job_file['spec']['template']['spec']['containers'][0]['env'][1]['value'] = session_id
 
     with open (file_path, 'w') as f:
         yaml.dump(job_file, f)
 
 def create_job(size):
+    #config.load_kube_config()
     config.load_incluster_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
@@ -202,7 +204,7 @@ def create_job(size):
     pods_list = core.list_namespaced_pod(namespace=namespace, label_selector=pod_label_selector)
     pods = pods_list.items
     results = []
-
+    finished_pods = []
     w = watch.Watch()
 
     while True:
@@ -215,25 +217,30 @@ def create_job(size):
             if event['object'].status.phase in ["Succeeded", "Terminating"]:
                 try:
                     pod = event['object'].metadata.name
-                    pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
-                    pod_log = pod_log_response.data
-                    data = json.loads(pod_log)
+                    if pod not in finished_pods:
+                        pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
+                        pod_log = pod_log_response.data
+                        data = json.loads(pod_log)
+                        finished_pods.append(pod)
                 except kclient.rest.ApiException as e:
                     print(e)
+                    pod = event['object'].metadata.name
                     data = {
                         'flow': None,
                         'target': None,
                         'score': None 
                     }
+                    finished_pods.append(pod)
                 if data not in results:
                     results.append(data)
-                print(data)
-                if len(results) == size:
+                if len(finished_pods) == size:
                     w.stop()
                     return results
 
 
+
 def delete_job(name):
+    #config.load_kube_config()
     config.load_incluster_config()
     body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
@@ -253,16 +260,18 @@ class Load(Resource):
 
         args = parser.parse_args()
 
-        ttid = args['tid']
+        ttid = args['ttid']
         did = args['did']
         target = args['target']
         session_id = args['session_id']
         predict = args['predict']
-        print(active_datasets)
-        print(active)
+
+        print(f"Args: ttid:{ttid}, did:{did}, target:{target}, session_id:{session_id}, predict:{predict}")
+
         if did in active_datasets:
             
             result = filter(lambda dict: dict['did'] == did, active)
+            print(result)
             result = list(result)[0]
             fid = result['flow']
             filename = f"f{fid}-d{did}.pkl"
@@ -292,7 +301,6 @@ class Load(Resource):
             return res
 
         else:
-            active_datasets.append(did)
             redis = rediswq.RedisWQ(
                 name=session_id, 
                 host="20.49.225.191",
@@ -340,7 +348,6 @@ class Load(Resource):
                         max_ = result['score']
                         top = result
 
-
             delete_job("job-wq-2")
             dataset = openml.datasets.get_dataset(did)
 
@@ -349,22 +356,25 @@ class Load(Resource):
                 target=target
             )
 
+            test = format_test(X, predict, attribute_names)
+
             X[target] = y
+
             X = X.dropna()
-            active.append(top)
             file_ = create_model(top['flow'], did, target)
             model = None
 
             with open(file_, 'rb') as f:
                 model = pickle.load(f)
 
-            test = format_test(X, predict, attribute_names)
-            test = test.drop([target], axis=1)
             pred = model.predict(test)
 
             res = {
                 target: pred.tolist()
             }
+
+            active.append(top)
+            active_datasets.append(did)
 
             return res
 

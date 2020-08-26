@@ -29,7 +29,7 @@ q = rediswq.RedisWQ(
     )
 
 
-item = q.lease(lease_secs=500, block=True, timeout=None) 
+item = q.lease(lease_secs=500, block=True, timeout=100) 
 
 
 if item is not None:
@@ -45,7 +45,6 @@ if item is not None:
         'score': math.inf,
         'did': dataset_id
     }
-
 
     try:
         flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
@@ -90,28 +89,105 @@ if item is not None:
             'score': math.inf,
             'did': dataset_id
         }
+
         q.complete(item)
 
     except ValueError as e:
+        flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+        dataset = openml.datasets.get_dataset(dataset_id)
+
+        model = flow.model
+
+        X, y, categorical_indicator, attribute_names = dataset.get_data(
+            dataset_format='dataframe',
+            target=target
+        )
+
+        X[target] = y
+        X = X.dropna()
+
+        le = preprocessing.LabelEncoder()
+        labels = X.columns.values.tolist()
+
+        for i, label in enumerate(labels):
+            if X.dtypes[i] == 'object':
+                X[label] = le.fit_transform(X[label])
+
+
+        y = X[target]
+        X = X.drop([target], axis=1)
+
+        model.fit(X, y)
+        preds = model.predict(X)
+    
+        score = mean_squared_error(y, preds)
+
         result = {
             'flow': flow_id,
             'target': target,
-            'score': math.inf,
+            'score': score,
             'did': dataset_id
-        }
+            }
+
+
         q.complete(item)
 
     except TypeError as e:
+        flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+        dataset = openml.datasets.get_dataset(dataset_id)
+
+        model = flow.model
+
+        X, y, categorical_indicator, attribute_names = dataset.get_data(
+            dataset_format='dataframe',
+            target=target
+        )
+
+        X[target] = y
+        X = X.dropna()
+
+        le = preprocessing.LabelEncoder()
+        labels = X.columns.values.tolist()
+
+        for i, label in enumerate(labels):
+            if X.dtypes[i] == 'object':
+                X[label] = le.fit_transform(X[label])
+
+
+        y = X[target]
+        X = X.drop([target], axis=1)
+
+        model.fit(X, y)
+        preds = model.predict(X)
+    
+        score = mean_squared_error(y, preds)
+
         result = {
             'flow': flow_id,
             'target': target,
-            'score': math.inf,
+            'score': score,
             'did': dataset_id
-        }
+            }
+
+
         q.complete(item)
+    except:
+        result = {
+            'flow': flow_id,
+            'target': target,
+            'score': "ERROR",
+            'did': dataset_id
+            }
+
 
     finally:
         q.complete(item)
+else:
+    result = {
+        'flow': None,
+        'target': None,
+        'score': None,
+        'did': None
+    }
 
-    
 print(json.dumps(result))
