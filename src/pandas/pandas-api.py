@@ -143,9 +143,13 @@ class LoadDataset(Resource):
         did = data['did']
         dataset = openml.datasets.get_dataset(dataset_id=did, download_data=True)
         raw = loadarff(dataset.data_file)
+        filename = f"{dataset.name}.csv"
         df = pd.DataFrame(raw[0])
         csv_file = df.to_csv()
-        return(csv_file)
+        resp = make_response(csv_file)
+        resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        resp.headers["Content-Type"] = "text/csv"   
+        return resp
 
 
 api.add_resource(Hello,'/hello/')
