@@ -11,7 +11,7 @@ from flask import Flask, request, send_file, make_response
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
 from string import Template
-
+from scipy.io.arff import loadarff
 
 app = Flask(__name__)
 CORS(app)
@@ -27,6 +27,7 @@ client = Client(transport=transport)
 parser = reqparse.RequestParser()
 parser.add_argument('file', type=FileStorage, location='files')
 parser.add_argument('labels', type=str, action='append')
+parser.add_argument('did', type=str)
 
 
 add_dataset = Template("""
@@ -40,6 +41,17 @@ mutation {
     }
 }
 """)
+
+datasets = """
+{
+    datasets {
+        did,
+        name
+    }
+}
+"""
+
+
 
 class Hello(Resource):
     def get(self):
@@ -120,12 +132,30 @@ class DropNaN(Resource):
         resp.headers["Content-Type"] = "text/csv"   
         return resp 
 
+class GetDatasets(Resource):
+    def get(self):
+        ds = client.execute(gql(datasets)) 
+        return ds['datasets']
+
+class LoadDataset(Resource):
+    def get(self):
+        data = parser.parse_args()
+        did = data['did']
+        dataset = openml.datasets.get_dataset(dataset_id=did, download_data=True)
+        raw = loadarff(dataset.data_file)
+        df = pd.DataFrame(raw[0])
+        csv_file = df.to_csv()
+        return(csv_file)
+
+
 api.add_resource(Hello,'/hello/')
 api.add_resource(Labels,'/labels/')
 api.add_resource(Columns,'/columns/')
 api.add_resource(CountNaN,'/countnan/')
 api.add_resource(DropNaN,'/dropnan/')
 api.add_resource(UploadDataset,'/upload/')
+api.add_resource(GetDatasets,'/datasets/')
+api.add_resource(LoadDataset,'/load/')
 
 
 if __name__ == '__main__':
