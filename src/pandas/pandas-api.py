@@ -28,6 +28,7 @@ parser = reqparse.RequestParser()
 parser.add_argument('file', type=FileStorage, location='files')
 parser.add_argument('labels', type=str, action='append')
 parser.add_argument('did', type=str)
+parser.add_argument('index', type=int)
 
 
 add_dataset = Template("""
@@ -99,7 +100,7 @@ class Labels(Resource):
         data = parser.parse_args()
         file_ = data['file']
         csvfile = pd.read_csv(file_.stream)
-        labels = list(csvfile.columns)
+        labels = csvfile.columns.values.tolist()
         return labels
 
 class Columns(Resource):
@@ -108,7 +109,8 @@ class Columns(Resource):
         file_ = data['file']
         labels = data['labels']
         csvfile = pd.read_csv(file_.stream)
-        resp = make_response(csvfile[labels].to_csv())
+
+        resp = make_response(csvfile[labels].to_csv(index=False))
         resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
         resp.headers["Content-Type"] = "text/csv"   
         return resp
@@ -145,11 +147,41 @@ class LoadDataset(Resource):
         raw = loadarff(dataset.data_file)
         filename = f"{dataset.name}.csv"
         df = pd.DataFrame(raw[0])
-        csv_file = df.to_csv()
+        csv_file = df.to_csv(index=False)
         resp = make_response(csv_file)
         resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
         resp.headers["Content-Type"] = "text/csv"   
         return resp
+
+class GetRow(Resource):
+    def post(self):
+        data = parser.parse_args()
+        index = data['index']
+        file_ = data['file']
+        csvfile = pd.read_csv(file_.stream)
+        row = csvfile.iloc[[index]]
+        resp = make_response(row.to_csv(index=False))
+        resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
+        resp.headers["Content-Type"] = "text/csv"
+
+        return resp
+
+class DropColumns(Resource):
+    def post(self):
+        data = parser.parse_args()
+        file_ = data['file']
+        labels = data['labels']
+
+        csvfile = pd.read_csv(file_.stream)
+        csvfile = csvfile.drop(labels, axis=1)
+
+        resp = make_response(csvfile.to_csv(index=False))
+        resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
+        resp.headers["Content-Type"] = "text/csv" 
+
+        return resp
+
+
 
 
 api.add_resource(Hello,'/hello/')
@@ -160,6 +192,8 @@ api.add_resource(DropNaN,'/dropnan/')
 api.add_resource(UploadDataset,'/upload/')
 api.add_resource(GetDatasets,'/datasets/')
 api.add_resource(LoadDataset,'/load/')
+api.add_resource(GetRow,'/row/')
+api.add_resource(DropColumns,'/dropcolumns/')
 
 
 if __name__ == '__main__':
