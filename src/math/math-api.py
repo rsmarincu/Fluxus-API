@@ -20,7 +20,7 @@ class Hello(Resource):
         return {"message":"Hello from the math endpoint"}
 
 class Add(Resource):
-    def get(self):
+    def post(self):
         args = parser.parse_args()
         if args['file'] == None:
             if args['bs'] == None:
@@ -41,7 +41,7 @@ class Add(Resource):
             return resp
 
 class Subtract(Resource):
-    def get(self):
+    def post(self):
         args = parser.parse_args()
         if args['file'] == None:
             if args['bs'] == None:
@@ -62,7 +62,7 @@ class Subtract(Resource):
             return resp
 
 class Multiply(Resource):
-    def get(self):
+    def post(self):
         args = parser.parse_args()
         if args['file'] == None:
             if args['bs'] == None:
@@ -83,7 +83,7 @@ class Multiply(Resource):
             return resp
 
 class Divide(Resource):
-    def get(self):
+    def post(self):
         args = parser.parse_args()
         if args['file'] == None:
             if args['bs'] == None:
