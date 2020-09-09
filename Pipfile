@@ -6,11 +6,6 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pandas = "*"
-scikit-learn = "*"
-openml = "*"
-redis = "*"
-xgboost = "*"
 
 [requires]
 python_version = "3.8"

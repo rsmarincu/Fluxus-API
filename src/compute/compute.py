@@ -7,17 +7,18 @@ from gql.transport.requests import RequestsHTTPTransport
 from string import Template
 from flask_cors import CORS
 from xml.etree import ElementTree as ET
+from werkzeug.datastructures import FileStorage
 
 from sklearn.metrics import roc_auc_score, accuracy_score, mean_squared_error
 from sklearn.preprocessing import OneHotEncoder
 from sklearn import compose, ensemble, impute, neighbors, preprocessing
+from sklearn.model_selection import train_test_split
 
 import requests
 import openml
 import subprocess
 import sys
 import re, os 
-import importlib, site
 import pip
 import json
 import yaml
@@ -36,33 +37,18 @@ openml.config.set_cache_directory(os.path.expanduser('~/.openml/cache'))
 
 parser = reqparse.RequestParser()
 
-parser.add_argument('did', type=int, location='json')
-parser.add_argument('ttid', type=int, location='json')
-parser.add_argument('session_id', type=str, location='json')
-
-parser.add_argument('task_type_id', type=int, location='json')
-parser.add_argument('did', type=int, location='json')
-parser.add_argument('target', type=str, location='json')
-parser.add_argument('predict', type=list, location='json')
-
-
+parser.add_argument('predict_file', type=FileStorage, location='files')
+parser.add_argument('did', location='form')
+parser.add_argument('ttid', location='form')
+parser.add_argument('target', location='form')
+parser.add_argument('session_id', location='form')
+parser.add_argument('predict', location='form')
 
 active = []
 active_datasets = []
 
-
 transport = RequestsHTTPTransport("http://fluxusml.com/graphql/interface")
 client = Client(transport=transport)
-
-create_task_xml = Template("""
-<oml:task_inputs xmlns:oml="http://openml.org/openml">
-<oml:task_type_id>$ttid</oml:task_type_id>
-<oml:input name="source_data">$did</oml:input>
-<oml:input name="target_feature">$target</oml:input>
-<oml:input name="estimation_procedure">$estimation</oml:input>
-<oml:input name="evaluation_measures">$evaluation/oml:input>
-</oml:task_inputs>
-""")
 
 close_connections = Template("""
 {
@@ -92,7 +78,7 @@ evaluations = Template("""
 }
 """)
 
-def format_test(dataset, test, attribute_names):
+def format_string_row(dataset, test, attribute_names):
     df = pd.DataFrame([test])
     df.columns = attribute_names
 
@@ -107,67 +93,116 @@ def format_test(dataset, test, attribute_names):
 
     return row
 
-def create_model(fid, did, target):
-    flow = openml.flows.get_flow(fid, reinstantiate=True, strict_version=False)
-    dataset = openml.datasets.get_dataset(did)
-
-    model = flow.model
-
-    X, y, categorical_indicator, attribute_names = dataset.get_data(
-        dataset_format='dataframe',
-        target=target
-    )
-
-    X[target] = y
-    X = X.dropna()
-
+def format_row(dataset, test, attribute_names):
+    df = pd.DataFrame(test)
+    df.columns = attribute_names
+    index = test.index
+    len_rows = len(index)
+    dataset = dataset.append(df.loc[0], ignore_index=True)
     le = preprocessing.LabelEncoder()
 
     for i, label in enumerate(attribute_names):
-        if X.dtypes[i] == 'object':
-            X[label] = le.fit_transform(X[label])
+        if dataset.dtypes[i] == 'object':
+            dataset[label] = le.fit_transform(dataset[label])
+
+    row = dataset.tail(len_rows)
+
+    return row
+
+def create_model(flow_id, dataset_id, target):
+    try:
+        flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+        dataset = openml.datasets.get_dataset(dataset_id)
+
+        model = flow.model
+
+        X, y, categorical_indicator, attribute_names = dataset.get_data(
+            dataset_format='dataframe',
+            target=target
+        )
+
+        X[target] = y
+        X = X.dropna()
+
+        for i, label in enumerate(attribute_names):
+            if X.dtypes[i] == 'object':
+                X[label] = le.fit_transform(X[label])
+
+        y = X[target]
+        X = X.drop([target], axis=1)
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+        model.fit(X_train, y_train)
+
+    except ValueError as e:
+        if str(e) == "n_estimators must be an integer, got <class 'str'>.":
+            flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+            dataset = openml.datasets.get_dataset(dataset_id)
+
+            model = flow.model
+
+            X, y, categorical_indicator, attribute_names = dataset.get_data(
+                dataset_format='dataframe',
+                target=target
+            )
+
+            X[target] = y
+            X = X.dropna()
+
+            le = preprocessing.LabelEncoder()
+            labels = X.columns.values.tolist()
+
+            for i, label in enumerate(labels):
+                if X.dtypes[i] == 'object':
+                    X[label] = le.fit_transform(X[label])
 
 
-    y = X[target]
-    X = X.drop([target], axis=1)
+            y = X[target]
+            X = X.drop([target], axis=1)
 
-    model.fit(X, y)
-    filename = f"f{fid}-d{did}.pkl"
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+            model.set_params(estimator__n_estimators=10)
+
+            model.fit(X_train, y_train)
+
+        elif str(e) == '''value 0 for Parameter num_class should be greater equal to 1\nnum_class: Number of output class in the multi-class classification.''':
+            flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+            dataset = openml.datasets.get_dataset(dataset_id)
+            le = preprocessing.LabelEncoder()
+            model = flow.model
+
+            X, y, categorical_indicator, attribute_names = dataset.get_data(
+                dataset_format='dataframe',
+                target=target
+            )
+
+            X[target] = y
+            num_classes = len(X[target].unique())
+
+            X = X.dropna()
+            attribute_names.append(target)
+
+            for i, label in enumerate(attribute_names):
+                if X.dtypes[i] not in ['float64', 'int']:
+                    X[label] = le.fit_transform(X[label])
+
+            y = X[target]
+            X = X.drop([target], axis=1)
+
+            X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42)
+
+            model.set_params(estimator__num_class=num_classes)
+            model.fit(X_train, y_train)
+
+
+    filename = f"f{flow_id}-d{dataset_id}.pkl"
 
     with open (filename, 'wb') as f:
         pickle.dump(model, f)
 
     
     return filename
-
-def install(package):
-    pip.main(['install', package])
-
-def get_dependencies(dependencies):
-    dependencies = dependencies.split('\n')
-    to_install = {}
-    print(dependencies, file=sys.stdout)
-
-    dep_list = []
-    
-    for dependency in dependencies:
-        parts = re.split('(>=|==|<=|_)', dependency)
-        name = parts[0]
-        if parts[1] in ['<=', '_', '==']:
-            version = parts[2]
-        elif parts[1] in ['>=']:
-            version = 'latest'
-
-        if name == 'sklearn' : 
-            name = 'scikit-learn'
-            version = 'latest'
-
-        dep_list.append({
-            'name':name,
-            'version':version
-        })
-    
-    return dep_list
 
 def set_jobs(number, session_id, ):
     file_path = 'job.yaml'
@@ -182,8 +217,8 @@ def set_jobs(number, session_id, ):
         yaml.dump(job_file, f)
 
 def create_job(size):
-    #config.load_kube_config()
-    config.load_incluster_config()
+    config.load_kube_config()
+    #config.load_incluster_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
 
@@ -220,7 +255,9 @@ def create_job(size):
                     if pod not in finished_pods:
                         pod_log_response = core.read_namespaced_pod_log(name=pod, namespace=namespace, _return_http_data_only=True, _preload_content=False)
                         pod_log = pod_log_response.data
-                        data = json.loads(pod_log)
+                        logs = pod_log.decode("utf-8").split('\n')
+                        logs = logs[-2]
+                        data = json.loads(logs)
                         finished_pods.append(pod)
                 except kclient.rest.ApiException as e:
                     print(e)
@@ -240,8 +277,8 @@ def create_job(size):
 
 
 def delete_job(name):
-    #config.load_kube_config()
-    config.load_incluster_config()
+    config.load_kube_config()
+    #config.load_incluster_config()
     body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
     api.delete_namespaced_job(
@@ -253,25 +290,27 @@ def delete_job(name):
 class Load(Resource):
     def post(self):
 
-        path = site.USER_SITE
-
-        if path not in sys.path:
-            sys.path.append(path)
-
         args = parser.parse_args()
-
         ttid = args['ttid']
         did = args['did']
         target = args['target']
         session_id = args['session_id']
         predict = args['predict']
+        predict_file = args['predict_file']
 
-        print(f"Args: ttid:{ttid}, did:{did}, target:{target}, session_id:{session_id}, predict:{predict}")
+        is_csv = False
 
-        if did in active_datasets:
-            
+
+        if (isinstance(predict_file, FileStorage)):
+            csvfile = pd.read_csv(predict_file.stream)
+            predict = csvfile
+            is_csv = True
+
+        print(f"Did: {did}, ttid: {ttid}, target: {target}, predict: {is_csv}, session_id: {session_id}")
+
+        if (did, target) in active_datasets:
+            print("Already exists.")
             result = filter(lambda dict: dict['did'] == did, active)
-            print(result)
             result = list(result)[0]
             fid = result['flow']
             filename = f"f{fid}-d{did}.pkl"
@@ -290,9 +329,13 @@ class Load(Resource):
             with open(filename, 'rb') as f:
                 model = pickle.load(f)
 
-            test = format_test(X, predict, attribute_names)
-            test = test.drop([target], axis=1)
-            pred = model.predict(test)
+            if is_csv:
+                to_predict = format_row(X, predict, attribute_names)
+            else:
+                to_predict = format_string_row(X, predict, attribute_names)
+
+            to_predict = to_predict.drop([target], axis=1)
+            pred = model.predict(to_predict)
 
             res = {
                 target: pred.tolist()
@@ -301,6 +344,8 @@ class Load(Resource):
             return res
 
         else:
+            print("New dataset.")
+
             redis = rediswq.RedisWQ(
                 name=session_id, 
                 host="20.49.225.191",
@@ -329,22 +374,19 @@ class Load(Resource):
 
 
             jobs = len(flows)
-        
             items = zip(list(flows), itertools.repeat(did), itertools.repeat(target))
-
-            print(list(flows))
 
             pickled = [pickle.dumps(t) for t in list(items)]
             redis.add_items(pickled, str(session_id))
             set_jobs(jobs, session_id)
             results = create_job(jobs)
             
-            max_ = 1
+            max_ = 0
             top = {}
 
             for result in results:
                 if result['flow'] is not None:
-                    if result['score']  < max_ and result['score'] > 0:
+                    if result['score']  > max_ and result['score'] < 1:
                         max_ = result['score']
                         top = result
 
@@ -356,7 +398,10 @@ class Load(Resource):
                 target=target
             )
 
-            test = format_test(X, predict, attribute_names)
+            if is_csv:
+                to_predict = format_row(X, predict, attribute_names)
+            else:
+                to_predict = format_string_row(X, predict, attribute_names)
 
             X[target] = y
 
@@ -367,18 +412,18 @@ class Load(Resource):
             with open(file_, 'rb') as f:
                 model = pickle.load(f)
 
-            pred = model.predict(test)
+            pred = model.predict(to_predict)
 
             res = {
                 target: pred.tolist()
             }
 
             active.append(top)
-            active_datasets.append(did)
+            active_datasets.append((did, target))
 
             return res
 
-api.add_resource(Load,'/load/')
+api.add_resource(Load,'/')
 
 
 if __name__ == '__main__':
