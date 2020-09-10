@@ -13,6 +13,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score, mean_squared_error
 from sklearn.preprocessing import OneHotEncoder
 from sklearn import compose, ensemble, impute, neighbors, preprocessing
 from sklearn.model_selection import train_test_split
+from timeit import default_timer as timer
 
 import requests
 import openml
@@ -26,6 +27,10 @@ import rediswq
 import itertools
 import pickle
 import pandas as pd 
+import warnings
+import numpy as np
+
+warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
 CORS(app)
@@ -86,9 +91,14 @@ def format_string_row(dataset, test, attribute_names):
     le = preprocessing.LabelEncoder()
 
     for i, label in enumerate(attribute_names):
-        if dataset.dtypes[i] == 'object':
-            dataset[label] = le.fit_transform(dataset[label])
-
+        print(label)
+        if dataset.dtypes[i] not in ['float64', 'float', 'int']:
+            try:
+                dataset[label] = le.fit_transform(dataset[label])
+            except TypeError as e:
+                dataset = dataset.apply(dataset.to_numeric,args=('coerce'))
+                dataset.dropna()
+                dataset[label] = le.fit_transform(dataset[label])
     row = dataset.tail(1)
 
     return row
@@ -102,38 +112,46 @@ def format_row(dataset, test, attribute_names):
     le = preprocessing.LabelEncoder()
 
     for i, label in enumerate(attribute_names):
-        if dataset.dtypes[i] == 'object':
-            dataset[label] = le.fit_transform(dataset[label])
+        if dataset.dtypes[i] not in ['float64', 'int']:
+            try:
+                dataset[label] = le.fit_transform(dataset[label])
+            except TypeError as e:
+                dataset = dataset.to_numeric(dataset[label], errors='coerce')
+                dataset.dropna()
+                dataset[label] = le.fit_transform(dataset[label])
 
     row = dataset.tail(len_rows)
-
     return row
 
 def create_model(flow_id, dataset_id, target):
     try:
         flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
         dataset = openml.datasets.get_dataset(dataset_id)
-
+        le = preprocessing.LabelEncoder()
         model = flow.model
 
         X, y, categorical_indicator, attribute_names = dataset.get_data(
             dataset_format='dataframe',
             target=target
         )
-
+        print(model)
         X[target] = y
         X = X.dropna()
+        attribute_names.append(target)
 
         for i, label in enumerate(attribute_names):
-            if X.dtypes[i] == 'object':
+            if X.dtypes[i] not in ['float64', 'int']:
                 X[label] = le.fit_transform(X[label])
 
         y = X[target]
         X = X.drop([target], axis=1)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+        X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42)
 
         model.fit(X_train, y_train)
+        preds = model.predict(X_test)
+        score = accuracy_score(y_test, preds)
 
     except ValueError as e:
         if str(e) == "n_estimators must be an integer, got <class 'str'>.":
@@ -165,6 +183,8 @@ def create_model(flow_id, dataset_id, target):
             model.set_params(estimator__n_estimators=10)
 
             model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            score = accuracy_score(y_test, preds)
 
         elif str(e) == '''value 0 for Parameter num_class should be greater equal to 1\nnum_class: Number of output class in the multi-class classification.''':
             flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
@@ -194,6 +214,40 @@ def create_model(flow_id, dataset_id, target):
 
             model.set_params(estimator__num_class=num_classes)
             model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            score = accuracy_score(y_test, preds)
+
+    except TypeError as e:
+        flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
+        dataset = openml.datasets.get_dataset(dataset_id)
+
+        model = flow.model
+
+        X, y, categorical_indicator, attribute_names = dataset.get_data(
+            dataset_format='dataframe',
+            target=target
+        )
+
+        X[target] = y
+        X = X.dropna()
+
+        le = preprocessing.LabelEncoder()
+        labels = X.columns.values.tolist()
+        attribute_names.append(target)
+
+        for i, label in enumerate(attribute_names):
+            if X.dtypes[i] not in ['float64', 'int']:
+                X[label] = le.fit_transform(X[label])
+
+
+        y = X[target]
+        X = X.drop([target], axis=1)
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+        model.fit(X_train, y_train)
+        preds = model.predict(X_test)
+        score = accuracy_score(y_test, preds)
 
 
     filename = f"f{flow_id}-d{dataset_id}.pkl"
@@ -217,8 +271,8 @@ def set_jobs(number, session_id, ):
         yaml.dump(job_file, f)
 
 def create_job(size):
-    #config.load_kube_config()
-    config.load_incluster_config()
+    config.load_kube_config()
+    #config.load_incluster_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
 
@@ -241,7 +295,9 @@ def create_job(size):
     results = []
     finished_pods = []
     w = watch.Watch()
-
+    start = timer()
+    max_ = 0
+    top = {}
     while True:
         for event in w.stream(
             func=core.list_namespaced_pod,
@@ -268,17 +324,35 @@ def create_job(size):
                         'score': None 
                     }
                     finished_pods.append(pod)
+
                 if data not in results:
                     results.append(data)
+                    for result in results:
+                        if result['flow'] is not None:
+                            if result['score']  > max_ and result['score'] < 1:
+                                max_ = result['score']                               
+                                top = result
+                                now = timer()
+                                elapsed = now - start
+                                if max_ > 0.9 or (elapsed > 120 and top['flow'] is not None):
+                                    w.stop()
+                                    print("Found max or spent too much time")
+                                    return top
+                    
                 if len(finished_pods) == size:
                     w.stop()
-                    return results
+                    for result in results:
+                        if result['flow'] is not None:
+                            if result['score']  > max_ and result['score'] < 1:
+                                max_ = result['score']                               
+                                top = result
+                    return top
 
 
 
 def delete_job(name):
-    #config.load_kube_config()
-    config.load_incluster_config()
+    config.load_kube_config()
+    #config.load_incluster_config()
     body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
     api.delete_namespaced_job(
@@ -323,24 +397,24 @@ class Load(Resource):
                 target=target
             )
 
-            X[target] = y
             X = X.dropna()
-
-            model = None
-
-            with open(filename, 'rb') as f:
-                model = pickle.load(f)
 
             if is_csv:
                 to_predict = format_row(X, predict, attribute_names)
             else:
                 to_predict = format_string_row(X, predict, attribute_names)
 
-            to_predict = to_predict.drop([target], axis=1)
+            model = None
+
+            with open(filename, 'rb') as f:
+                model = pickle.load(f)
+
             pred = model.predict(to_predict)
+            le = preprocessing.LabelEncoder()
+            le.fit_transform(y)
 
             res = {
-                target: pred.tolist()
+                target: list(le.inverse_transform(pred))
             }
 
             return res
@@ -374,25 +448,16 @@ class Load(Resource):
                 for e in evals['evaluations']:
                     flows.add(e['flow_id'])
 
-
+            print(flows)
             jobs = len(flows)
             items = zip(list(flows), itertools.repeat(did), itertools.repeat(target))
 
             pickled = [pickle.dumps(t) for t in list(items)]
             redis.add_items(pickled, str(session_id))
             set_jobs(jobs, session_id)
-            results = create_job(jobs)
-            
-            max_ = 0
-            top = {}
-
-            for result in results:
-                if result['flow'] is not None:
-                    if result['score']  > max_ and result['score'] < 1:
-                        max_ = result['score']
-                        top = result
-
+            top = create_job(jobs)
             delete_job("job-wq-2")
+
             dataset = openml.datasets.get_dataset(did)
 
             X, y, categorical_indicator, attribute_names = dataset.get_data(
@@ -400,14 +465,16 @@ class Load(Resource):
                 target=target
             )
 
+            X = X.replace(to_replace="?", value=np.nan)
+            X = X.dropna()
+
+
+
             if is_csv:
                 to_predict = format_row(X, predict, attribute_names)
             else:
                 to_predict = format_string_row(X, predict, attribute_names)
 
-            X[target] = y
-
-            X = X.dropna()
             file_ = create_model(top['flow'], did, target)
             model = None
 
@@ -415,9 +482,11 @@ class Load(Resource):
                 model = pickle.load(f)
 
             pred = model.predict(to_predict)
+            le = preprocessing.LabelEncoder()
+            le.fit_transform(y)
 
             res = {
-                target: pred.tolist()
+                target: list(le.inverse_transform(pred))
             }
 
             active.append(top)

@@ -33,7 +33,7 @@ q = rediswq.RedisWQ(
     )
 
 
-item = q.lease(lease_secs=500, block=True, timeout=100) 
+item = q.lease(lease_secs=3600, block=True, timeout=100) 
 
 
 if item is not None:
@@ -49,30 +49,35 @@ if item is not None:
         'score': math.inf,
         'did': dataset_id
     }
+    print(result)
+    print("\n \n")
 
     try:
         flow = openml.flows.get_flow(flow_id, reinstantiate=True, strict_version=False)
         dataset = openml.datasets.get_dataset(dataset_id)
-
+        le = preprocessing.LabelEncoder()
         model = flow.model
 
         X, y, categorical_indicator, attribute_names = dataset.get_data(
             dataset_format='dataframe',
             target=target
         )
-
+        print(model)
         X[target] = y
         X = X.dropna()
+        attribute_names.append(target)
 
         for i, label in enumerate(attribute_names):
-            if X.dtypes[i] == 'object':
+            if X.dtypes[i] not in ['float64', 'int']:
                 X[label] = le.fit_transform(X[label])
 
         y = X[target]
         X = X.drop([target], axis=1)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
+        X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42)
+
+        #model.set_params(estimator__n_estimators=10)
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         score = accuracy_score(y_test, preds)
@@ -195,9 +200,10 @@ if item is not None:
 
         le = preprocessing.LabelEncoder()
         labels = X.columns.values.tolist()
+        attribute_names.append(target)
 
-        for i, label in enumerate(labels):
-            if X.dtypes[i] == 'object':
+        for i, label in enumerate(attribute_names):
+            if X.dtypes[i] not in ['float64', 'int']:
                 X[label] = le.fit_transform(X[label])
 
 

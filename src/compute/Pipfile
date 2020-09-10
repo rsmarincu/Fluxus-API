@@ -17,6 +17,8 @@ pyyaml = "*"
 gql = "*"
 redis = "*"
 flask-cors = "*"
+xgboost = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "3.8"

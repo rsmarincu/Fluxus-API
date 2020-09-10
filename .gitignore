@@ -1,0 +1,7 @@
+.vs
+.vscode
+src/pandas/.pytest_cache/
+src/pandas/tests/*.csv
+src/math/.pytest_cache/
+src/math/tests/*.csv
+src/timetests/*.csv

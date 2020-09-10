@@ -22,9 +22,9 @@ openml.config.server = 'https://www.openml.org/api/v1'
 openml.config.set_cache_directory(os.path.expanduser('~/.openml/cache'))
 
 
-flow_id = 17488
-target = "class"
-dataset_id = 53
+flow_id = 17593
+target = "Class"
+dataset_id = 50
 
 result = {
     'flow': flow_id,

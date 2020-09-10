@@ -1,10 +1,10 @@
-FROM python:3.7 as base
+FROM python:3.7 as base-compute
 RUN pip install pipenv==2018.11.26
 COPY ./Pipfile /Pipfile
 COPY ./Pipfile.lock /Pipfile.lock
 RUN pipenv install --system --deploy
 
-FROM base as compute
+FROM base-compute as compute
 COPY . .
 ENTRYPOINT ["python"]
 

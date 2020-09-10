@@ -12,6 +12,7 @@ from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
 from string import Template
 from scipy.io.arff import loadarff
+from werkzeug.serving import WSGIRequestHandler
 
 app = Flask(__name__)
 CORS(app)
@@ -52,6 +53,7 @@ datasets = """
 }
 """
 
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 
 class Hello(Resource):
@@ -82,14 +84,13 @@ class UploadDataset(Resource):
         processed = False
         while not processed:
             try:         
-                d = openml.datasets.get_dataset(dataset.dataset_id)
+                d = openml.datasets.get_dataset(dataset.dataset_id, download_data=False)
                 qual = d.qualities
                 processed = True
                 print(qual)
+                print("Finished")
             except openml.exceptions.OpenMLServerException as e:
                 print("Processing...")
-
-        print(add_dataset.substitute(did=dataset.dataset_id))
 
         dataset_ = client.execute(gql(add_dataset.substitute(did=dataset.dataset_id))) 
 
@@ -197,4 +198,5 @@ api.add_resource(DropColumns,'/dropcolumns/')
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port='5001')
+    WSGIRequestHandler.protocol_version = "HTTP/1.1"
+    app.run(host='0.0.0.0', port='5001')
