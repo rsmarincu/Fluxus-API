@@ -1,0 +1,218 @@
+[
+    {
+        "did": 2,
+        "name": "anneal"
+    },
+    {
+        "did": 3,
+        "name": "kr-vs-kp"
+    },
+    {
+        "did": 4,
+        "name": "labor"
+    },
+    {
+        "did": 5,
+        "name": "arrhythmia"
+    },
+    {
+        "did": 53,
+        "name": "heart-statlog"
+    },
+    {
+        "did": 6,
+        "name": "letter"
+    },
+    {
+        "did": 7,
+        "name": "audiology"
+    },
+    {
+        "did": 8,
+        "name": "liver-disorders"
+    },
+    {
+        "did": 9,
+        "name": "autos"
+    },
+    {
+        "did": 10,
+        "name": "lymph"
+    },
+    {
+        "did": 11,
+        "name": "balance-scale"
+    },
+    {
+        "did": 12,
+        "name": "mfeat-factors"
+    },
+    {
+        "did": 13,
+        "name": "breast-cancer"
+    },
+    {
+        "did": 14,
+        "name": "mfeat-fourier"
+    },
+    {
+        "did": 15,
+        "name": "breast-w"
+    },
+    {
+        "did": 16,
+        "name": "mfeat-karhunen"
+    },
+    {
+        "did": 18,
+        "name": "mfeat-morphological"
+    },
+    {
+        "did": 20,
+        "name": "mfeat-pixel"
+    },
+    {
+        "did": 22,
+        "name": "mfeat-zernike"
+    },
+    {
+        "did": 23,
+        "name": "cmc"
+    },
+    {
+        "did": 24,
+        "name": "mushroom"
+    },
+    {
+        "did": 25,
+        "name": "colic"
+    },
+    {
+        "did": 26,
+        "name": "nursery"
+    },
+    {
+        "did": 27,
+        "name": "colic"
+    },
+    {
+        "did": 28,
+        "name": "optdigits"
+    },
+    {
+        "did": 29,
+        "name": "credit-approval"
+    },
+    {
+        "did": 30,
+        "name": "page-blocks"
+    },
+    {
+        "did": 31,
+        "name": "credit-g"
+    },
+    {
+        "did": 32,
+        "name": "pendigits"
+    },
+    {
+        "did": 34,
+        "name": "postoperative-patient-data"
+    },
+    {
+        "did": 35,
+        "name": "dermatology"
+    },
+    {
+        "did": 36,
+        "name": "segment"
+    },
+    {
+        "did": 37,
+        "name": "diabetes"
+    },
+    {
+        "did": 38,
+        "name": "sick"
+    },
+    {
+        "did": 39,
+        "name": "ecoli"
+    },
+    {
+        "did": 40,
+        "name": "sonar"
+    },
+    {
+        "did": 41,
+        "name": "glass"
+    },
+    {
+        "did": 42,
+        "name": "soybean"
+    },
+    {
+        "did": 43,
+        "name": "haberman"
+    },
+    {
+        "did": 44,
+        "name": "spambase"
+    },
+    {
+        "did": 46,
+        "name": "splice"
+    },
+    {
+        "did": 48,
+        "name": "tae"
+    },
+    {
+        "did": 49,
+        "name": "heart-c"
+    },
+    {
+        "did": 50,
+        "name": "tic-tac-toe"
+    },
+    {
+        "did": 54,
+        "name": "vehicle"
+    },
+    {
+        "did": 55,
+        "name": "hepatitis"
+    },
+    {
+        "did": 56,
+        "name": "vote"
+    },
+    {
+        "did": 57,
+        "name": "hypothyroid"
+    },
+    {
+        "did": 51,
+        "name": "heart-h"
+    },
+    {
+        "did": 52,
+        "name": "trains"
+    },
+    {
+        "did": 42633,
+        "name": "dataset_31_credit-g"
+    },
+    {
+        "did": 42642,
+        "name": "dataset_53_heart-statlog"
+    },
+    {
+        "did": 334,
+        "name": "monks-problems-2"
+    },
+    {
+        "did": 42572,
+        "name": "Santander_transaction_value"
+    }
+]

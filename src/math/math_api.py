@@ -35,7 +35,7 @@ class Add(Resource):
             csvfile = pd.read_csv(file_.stream)
             numeric = [col for col in csvfile if csvfile[col].dtype.kind != 'O']
             csvfile[numeric] += args['bs'][0]
-            resp = make_response(csvfile.to_csv())
+            resp = make_response(csvfile.to_csv(index=False))
             resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
             resp.headers["Content-Type"] = "text/csv"   
             return resp
@@ -56,7 +56,7 @@ class Subtract(Resource):
             csvfile = pd.read_csv(file_.stream)
             numeric = [col for col in csvfile if csvfile[col].dtype.kind != 'O']
             csvfile[numeric] -= args['bs'][0]
-            resp = make_response(csvfile.to_csv())
+            resp = make_response(csvfile.to_csv(index=False))
             resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
             resp.headers["Content-Type"] = "text/csv"   
             return resp
@@ -77,7 +77,7 @@ class Multiply(Resource):
             csvfile = pd.read_csv(file_.stream)
             numeric = [col for col in csvfile if csvfile[col].dtype.kind != 'O']
             csvfile[numeric] *= args['bs'][0]
-            resp = make_response(csvfile.to_csv())
+            resp = make_response(csvfile.to_csv(index=False))
             resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
             resp.headers["Content-Type"] = "text/csv"   
             return resp
@@ -98,7 +98,7 @@ class Divide(Resource):
             csvfile = pd.read_csv(file_.stream)
             numeric = [col for col in csvfile if csvfile[col].dtype.kind != 'O']
             csvfile[numeric] /= args['bs'][0]
-            resp = make_response(csvfile.to_csv())
+            resp = make_response(csvfile.to_csv(index=False))
             resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
             resp.headers["Content-Type"] = "text/csv"   
             return resp

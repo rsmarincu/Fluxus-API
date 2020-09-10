@@ -217,8 +217,8 @@ def set_jobs(number, session_id, ):
         yaml.dump(job_file, f)
 
 def create_job(size):
-    config.load_kube_config()
-    #config.load_incluster_config()
+    #config.load_kube_config()
+    config.load_incluster_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
 
@@ -277,8 +277,8 @@ def create_job(size):
 
 
 def delete_job(name):
-    config.load_kube_config()
-    #config.load_incluster_config()
+    #config.load_kube_config()
+    config.load_incluster_config()
     body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
     api.delete_namespaced_job(
@@ -305,8 +305,10 @@ class Load(Resource):
             csvfile = pd.read_csv(predict_file.stream)
             predict = csvfile
             is_csv = True
+        else:
+            predict = json.loads(predict)
 
-        print(f"Did: {did}, ttid: {ttid}, target: {target}, predict: {is_csv}, session_id: {session_id}")
+        print(f"Did: {did}, ttid: {ttid}, target: {target}, predict: {predict}, session_id: {session_id}")
 
         if (did, target) in active_datasets:
             print("Already exists.")

@@ -120,8 +120,8 @@ class CountNaN(Resource):
         data = parser.parse_args()
         file_ = data['file']
         csvfile = pd.read_csv(file_.stream)
-        nans = csvfile.isnull().sum(axis = 0)
-        return nans 
+        nans = csvfile.isnull().sum(axis = 0).tolist()
+        return sum(nans) 
     
 class DropNaN(Resource):
     def post(self):

@@ -12,6 +12,7 @@ flask-restful = "*"
 pandas = "*"
 openml = "*"
 gql = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.8"

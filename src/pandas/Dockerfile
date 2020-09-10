@@ -8,4 +8,4 @@ RUN cd /src/pandas/ && pipenv install --system --deploy
 
 ENTRYPOINT ["python"]
 
-CMD ["/src/pandas/pandas-api.py"] 
+CMD ["/src/pandas/pandas_api.py"] 

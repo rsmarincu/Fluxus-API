@@ -8,4 +8,4 @@ RUN cd /src/math/ && pipenv install --system --deploy
 
 ENTRYPOINT ["python"]
 
-CMD ["/src/math/math-api.py"] 
+CMD ["/src/math/math_api.py"] 
