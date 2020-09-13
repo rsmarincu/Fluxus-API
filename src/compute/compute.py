@@ -85,6 +85,9 @@ evaluations = Template("""
 
 def format_string_row(dataset, test, attribute_names):
     df = pd.DataFrame([test])
+    print(df)
+    print(attribute_names)
+
     df.columns = attribute_names
 
     dataset = dataset.append(df.loc[0], ignore_index=True)
@@ -96,8 +99,7 @@ def format_string_row(dataset, test, attribute_names):
             try:
                 dataset[label] = le.fit_transform(dataset[label])
             except TypeError as e:
-                dataset = dataset.apply(dataset.to_numeric,args=('coerce'))
-                dataset.dropna()
+                dataset[label] = dataset[label].apply(int)
                 dataset[label] = le.fit_transform(dataset[label])
     row = dataset.tail(1)
 
@@ -116,8 +118,7 @@ def format_row(dataset, test, attribute_names):
             try:
                 dataset[label] = le.fit_transform(dataset[label])
             except TypeError as e:
-                dataset = dataset.to_numeric(dataset[label], errors='coerce')
-                dataset.dropna()
+                dataset[label] = dataset[label].apply(int)
                 dataset[label] = le.fit_transform(dataset[label])
 
     row = dataset.tail(len_rows)
@@ -256,7 +257,7 @@ def create_model(flow_id, dataset_id, target):
         pickle.dump(model, f)
 
     
-    return filename
+    return filename, score
 
 def set_jobs(number, session_id, ):
     file_path = 'job.yaml'
@@ -321,19 +322,22 @@ def create_job(size):
                     data = {
                         'flow': None,
                         'target': None,
-                        'score': None 
+                        'score': None
                     }
                     finished_pods.append(pod)
+
+                now = timer()
 
                 if data not in results:
                     results.append(data)
                     for result in results:
                         if result['flow'] is not None:
+                            print(result)
                             if result['score']  > max_ and result['score'] < 1:
                                 max_ = result['score']                               
                                 top = result
-                                now = timer()
                                 elapsed = now - start
+                                print(f"Time {elapsed}")
                                 if max_ > 0.9 or (elapsed > 120 and top['flow'] is not None):
                                     w.stop()
                                     print("Found max or spent too much time")
@@ -361,6 +365,12 @@ def delete_job(name):
         namespace='default'
     )   
 
+def check_exists(active_datasets, to_check):
+    for active in active_datasets:
+        if to_check == (active[0], active[1]):
+            return True
+    return False
+
 class Load(Resource):
     def post(self):
 
@@ -384,8 +394,10 @@ class Load(Resource):
 
         print(f"Did: {did}, ttid: {ttid}, target: {target}, predict: {predict}, session_id: {session_id}")
 
-        if (did, target) in active_datasets:
+        if check_exists(active_datasets, (did, target)):
             print("Already exists.")
+            previous = next((item for item in active_datasets if (item[0] == did and item[1] == target)), None)
+            score = previous[2]
             result = filter(lambda dict: dict['did'] == did, active)
             result = list(result)[0]
             fid = result['flow']
@@ -398,7 +410,7 @@ class Load(Resource):
             )
 
             X = X.dropna()
-
+            print(X)
             if is_csv:
                 to_predict = format_row(X, predict, attribute_names)
             else:
@@ -414,7 +426,8 @@ class Load(Resource):
             le.fit_transform(y)
 
             res = {
-                target: list(le.inverse_transform(pred))
+                target: list(le.inverse_transform(pred)),
+                'score':score
             }
 
             return res
@@ -439,12 +452,15 @@ class Load(Resource):
                     tasks_to_check.add(t['tid'])
 
             flows = set()
-
             for t in tasks_to_check:
+                limit = 1
+                if ttid == 2:
+                    limit == 100
                 evals = client.execute(gql(evaluations.substitute(
                     tid=t,
-                    limit=1
+                    limit=limit
                 )))
+
                 for e in evals['evaluations']:
                     flows.add(e['flow_id'])
 
@@ -467,15 +483,16 @@ class Load(Resource):
 
             X = X.replace(to_replace="?", value=np.nan)
             X = X.dropna()
-
+            print(X)
 
 
             if is_csv:
                 to_predict = format_row(X, predict, attribute_names)
             else:
                 to_predict = format_string_row(X, predict, attribute_names)
+            print(top)
 
-            file_ = create_model(top['flow'], did, target)
+            file_, score = create_model(top['flow'], did, target)
             model = None
 
             with open(file_, 'rb') as f:
@@ -485,12 +502,19 @@ class Load(Resource):
             le = preprocessing.LabelEncoder()
             le.fit_transform(y)
 
-            res = {
-                target: list(le.inverse_transform(pred))
-            }
+            try:
+                res = {
+                    target: list(le.inverse_transform(pred)),
+                    'score': score
+                }
+            except ValueError:
+                res = {
+                    target: pred,
+                    'score': score
+                }
 
             active.append(top)
-            active_datasets.append((did, target))
+            active_datasets.append((did, target, score))
 
             return res
 
