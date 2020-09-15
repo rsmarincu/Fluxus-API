@@ -14,7 +14,7 @@ spec:
         - name: PYTHONUNBUFFERED
           value: '0'
         - name: SESSION_ID
-          value: '21397'
+          value: '577684'
         image: fluxuscontainerregistry.azurecr.io/job-wq:latest
         name: c
       restartPolicy: Never

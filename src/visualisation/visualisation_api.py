@@ -18,6 +18,7 @@ parser = reqparse.RequestParser()
 parser.add_argument('file', type=FileStorage, location='files')
 parser.add_argument('x-axis', type=str)
 parser.add_argument('y-axis', type=str)
+parser.add_argument('filter', type=str)
 
 
 class Hello(Resource):
@@ -28,10 +29,20 @@ class BarPlot(Resource):
     def post(self):
         fig = Figure()
         args = parser.parse_args()
+
+        x = args['x-axis']
+        y = args['y-axis']
         file_ = args['file']
+
         csvfile = pd.read_csv(file_.stream)
-        ax = fig.add_subplot(1,1,1)       
-        csvfile.plot(ax=ax, kind='bar', x=args['x-axis'], y=args['y-axis'])
+
+        ax = fig.add_subplot(1,1,1)   
+        print(csvfile[x].unique().tolist())
+        ax.set_xlabel(csvfile[x].unique().tolist())
+        ax.set_xticks(x)
+
+        ax.set_ylabel(y)    
+        csvfile.plot(ax=ax, kind='bar')
         output = io.BytesIO()
         FigureCanvas(fig).print_png(output)
         resp = make_response(output.getvalue())
@@ -43,9 +54,11 @@ class Histogram(Resource):
         fig = Figure()
         args = parser.parse_args()
         file_ = args['file']
+        label = args['x-axis']
+        filter_ = args['filter']
         csvfile = pd.read_csv(file_.stream)
         ax = fig.add_subplot(1,1,1)       
-        csvfile[args['x-axis']].plot(ax=ax, kind='hist')
+        csvfile[label].plot(ax=ax, kind='hist')
         output = io.BytesIO()
         FigureCanvas(fig).print_png(output)
         resp = make_response(output.getvalue())

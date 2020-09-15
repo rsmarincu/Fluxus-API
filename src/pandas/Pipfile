@@ -6,13 +6,14 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+pytest = "*"
 flask = "*"
-flask-cors = "*"
 flask-restful = "*"
+flask-cors = "*"
 pandas = "*"
+requests = "*"
 openml = "*"
 gql = "*"
-pytest = "*"
 
 [requires]
 python_version = "3.8"

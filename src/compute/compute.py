@@ -110,7 +110,7 @@ def format_row(dataset, test, attribute_names):
     df.columns = attribute_names
     index = test.index
     len_rows = len(index)
-    dataset = dataset.append(df.loc[0], ignore_index=True)
+    dataset = dataset.append(df, ignore_index=True)
     le = preprocessing.LabelEncoder()
 
     for i, label in enumerate(attribute_names):
@@ -272,8 +272,11 @@ def set_jobs(number, session_id, ):
         yaml.dump(job_file, f)
 
 def create_job(size):
-    config.load_kube_config()
-    #config.load_incluster_config()
+    try:
+        config.load_kube_config()
+    except Exception as e:
+        print(e)
+        config.load_incluster_config()
     api = kclient.ApiClient()
     core = kclient.CoreV1Api()
 
@@ -355,8 +358,11 @@ def create_job(size):
 
 
 def delete_job(name):
-    config.load_kube_config()
-    #config.load_incluster_config()
+    try:
+        config.load_kube_config()
+    except Exception as e:
+        print(e)
+        config.load_incluster_config()
     body = kclient.V1DeleteOptions(propagation_policy='Background')
     api = kclient.BatchV1Api()
     api.delete_namespaced_job(
@@ -410,7 +416,7 @@ class Load(Resource):
             )
 
             X = X.dropna()
-            print(X)
+
             if is_csv:
                 to_predict = format_row(X, predict, attribute_names)
             else:
@@ -465,6 +471,7 @@ class Load(Resource):
                     flows.add(e['flow_id'])
 
             print(flows)
+
             jobs = len(flows)
             items = zip(list(flows), itertools.repeat(did), itertools.repeat(target))
 
@@ -483,14 +490,12 @@ class Load(Resource):
 
             X = X.replace(to_replace="?", value=np.nan)
             X = X.dropna()
-            print(X)
 
 
             if is_csv:
                 to_predict = format_row(X, predict, attribute_names)
             else:
                 to_predict = format_string_row(X, predict, attribute_names)
-            print(top)
 
             file_, score = create_model(top['flow'], did, target)
             model = None
@@ -515,6 +520,8 @@ class Load(Resource):
 
             active.append(top)
             active_datasets.append((did, target, score))
+
+            print(res)
 
             return res
 

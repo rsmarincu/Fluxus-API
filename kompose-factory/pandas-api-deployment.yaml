@@ -16,5 +16,5 @@ spec:
     spec:
       containers:
       - name: pandas-api
-        image: rsmarincu/pandas-api:latest
+        image: fluxuscontainerregistry.azurecr.io/pandas_api:latest
       restartPolicy: Always

@@ -29,7 +29,7 @@ parser = reqparse.RequestParser()
 parser.add_argument('file', type=FileStorage, location='files')
 parser.add_argument('labels', type=str, action='append')
 parser.add_argument('did', type=str)
-parser.add_argument('index', type=int)
+parser.add_argument('index', type=int, action='append')
 
 
 add_dataset = Template("""
@@ -111,7 +111,7 @@ class Columns(Resource):
         labels = data['labels']
         csvfile = pd.read_csv(file_.stream)
 
-        resp = make_response(csvfile[labels].to_csv(index=False))
+        resp = make_response(csvfile[labels].to_csv(index=False, encoding='utf-8'))
         resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
         resp.headers["Content-Type"] = "text/csv"   
         return resp
@@ -130,7 +130,7 @@ class DropNaN(Resource):
         file_ = data['file']
         csvfile = pd.read_csv(file_.stream)
         dataset = csvfile.dropna()
-        resp = make_response(dataset.to_csv())
+        resp = make_response(dataset.to_csv(index=False, encoding='utf-8'))
         resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
         resp.headers["Content-Type"] = "text/csv"   
         return resp 
@@ -148,10 +148,17 @@ class LoadDataset(Resource):
         raw = loadarff(dataset.data_file)
         filename = f"{dataset.name}.csv"
         df = pd.DataFrame(raw[0])
-        csv_file = df.to_csv(index=False)
+
+        for col, dtype in df.dtypes.items():
+            if dtype == 'object':
+                df[col] = df[col].apply(lambda x: x.decode("utf-8"))
+
+        csv_file = df.to_csv(index=False, encoding='utf-8')
+        
         resp = make_response(csv_file)
         resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
         resp.headers["Content-Type"] = "text/csv"   
+
         return resp
 
 class GetRow(Resource):
@@ -160,8 +167,10 @@ class GetRow(Resource):
         index = data['index']
         file_ = data['file']
         csvfile = pd.read_csv(file_.stream)
-        row = csvfile.iloc[[index]]
-        resp = make_response(row.to_csv(index=False))
+        index = [i - 1 for i in index]
+        print(index)
+        row = csvfile.iloc[index, :]
+        resp = make_response(row.to_csv(index=False, encoding='utf-8'))
         resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
         resp.headers["Content-Type"] = "text/csv"
 
@@ -176,7 +185,7 @@ class DropColumns(Resource):
         csvfile = pd.read_csv(file_.stream)
         csvfile = csvfile.drop(labels, axis=1)
 
-        resp = make_response(csvfile.to_csv(index=False))
+        resp = make_response(csvfile.to_csv(index=False, encoding='utf-8'))
         resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
         resp.headers["Content-Type"] = "text/csv" 
 

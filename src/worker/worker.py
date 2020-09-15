@@ -62,7 +62,7 @@ if item is not None:
             dataset_format='dataframe',
             target=target
         )
-        print(model)
+
         X[target] = y
         X = X.dropna()
         attribute_names.append(target)
@@ -70,14 +70,13 @@ if item is not None:
         for i, label in enumerate(attribute_names):
             if X.dtypes[i] not in ['float64', 'int']:
                 X[label] = le.fit_transform(X[label])
-
+    
         y = X[target]
         X = X.drop([target], axis=1)
 
 
         X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42)
 
-        #model.set_params(estimator__n_estimators=10)
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         score = accuracy_score(y_test, preds)
@@ -228,7 +227,7 @@ if item is not None:
         result = {
             'flow': flow_id,
             'target': target,
-            'score': "ERROR",
+            'score': math.inf,
             'did': dataset_id
             }
 
