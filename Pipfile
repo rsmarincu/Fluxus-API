@@ -6,15 +6,6 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pytest = "*"
-flask = "*"
-flask-restful = "*"
-flask-cors = "*"
-pandas = "*"
-requests = "*"
-openml = "*"
-gql = "*"
-liac-arff = "*"
 
 [requires]
 python_version = "3.8"

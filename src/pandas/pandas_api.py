@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import openml
 import os
+import arff 
 
 from datetime import datetime
 from werkzeug.datastructures import FileStorage
@@ -145,14 +146,23 @@ class LoadDataset(Resource):
         data = parser.parse_args()
         did = data['did']
         dataset = openml.datasets.get_dataset(dataset_id=did, download_data=True)
-        raw = loadarff(dataset.data_file)
+        raw = arff.load(open(dataset.data_file, 'r'))
         filename = f"{dataset.name}.csv"
-        df = pd.DataFrame(raw[0])
+        print(dataset)
+        try:
+            raw = loadarff(dataset.data_file)
+            df = pd.DataFrame(raw[0])
+            for col, dtype in df.dtypes.items():
+                if dtype == 'object':
+                    df[col] = df[col].apply(lambda x: x.decode("utf-8"))
 
-        for col, dtype in df.dtypes.items():
-            if dtype == 'object':
-                df[col] = df[col].apply(lambda x: x.decode("utf-8"))
-
+        except Exception as e:
+            print(e)
+            cols = []
+            for a in raw['attributes']:
+                cols.append(a[0])
+            df = pd.DataFrame(raw['data'], columns=cols)
+            
         csv_file = df.to_csv(index=False, encoding='utf-8')
         
         resp = make_response(csv_file)
