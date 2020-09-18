@@ -5,3 +5,5 @@ src/pandas/tests/*.csv
 src/math/.pytest_cache/
 src/math/tests/*.csv
 src/timetests/*.csv
+src/backup/
+src/reverse-proxy/

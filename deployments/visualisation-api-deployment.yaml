@@ -16,5 +16,5 @@ spec:
     spec:
       containers:
       - name: visualisation-api
-        image: fluxuscontainerregistry.azurecr.io/visualisation_api
+        image: fluxuscontainerregistry.azurecr.io/visualisation-api:latest
       restartPolicy: Always

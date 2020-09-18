@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: compute
+  labels:
+    service: compute
+spec:
+  type: ClusterIP
+  selector:
+    app: compute
+  ports:
+  - port: 5006
+    targetPort: 5006

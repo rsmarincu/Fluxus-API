@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-wq-2
+spec:
+  completions: null
+  template:
+    metadata:
+      name: job-wq-2
+    spec:
+      containers:
+      - name: c
+        image: fluxuscontainerregistry.azurecr.io/job-wq:latest
+      restartPolicy: OnFailure 

@@ -1,0 +1,25 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pods-list
+rules:
+  - apiGroups: ["", "metrics.k8s.io", "extensions", "apps", "batch"] 
+    resources: 
+      - "pods/log" 
+      - "events" 
+      - "pods" 
+      - "jobs"
+    verbs: ["get", "list", "delete", "create", "watch"] 
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pods-list
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: pods-list
+  apiGroup: rbac.authorization.k8s.io

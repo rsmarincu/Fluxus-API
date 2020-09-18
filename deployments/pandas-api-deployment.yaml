@@ -2,19 +2,19 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    name: math-api
-  name: math-api
+    name: pandas-api
+  name: pandas-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: math-api
+      app: pandas-api
   template:
     metadata:
       labels:
-        app: math-api
+        app: pandas-api
     spec:
       containers:
-      - name: math-api
-        image: rsmarincu/math-api:latest
+      - name: pandas-api
+        image: fluxuscontainerregistry.azurecr.io/pandas-api:latest
       restartPolicy: Always

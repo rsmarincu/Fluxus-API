@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: basic-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ncp/use-regex: "True"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1  
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/cors-allow-methods: '*'
+    nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /math/(.*)
+        backend:
+          serviceName: math-api
+          servicePort: 5000
+      - path: /pandas/(.*)
+        backend:
+          serviceName: pandas-api
+          servicePort: 5001
+      - path: /visualisation/(.*)
+        backend:
+            serviceName: visualisation-api
+            servicePort: 5002
+      - path: /graphql/(.*)
+        backend:
+            serviceName: graphql
+            servicePort: 8080
+      - path: /(.*)
+        backend:
+            serviceName: fluxus
+            servicePort: 5005
+      - path: /compute/(.*)
+        backend:
+          serviceName: compute
+          servicePort: 5006

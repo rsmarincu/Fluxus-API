@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: math-api
+  name: math-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: math-api
+  template:
+    metadata:
+      labels:
+        app: math-api
+    spec:
+      containers:
+      - name: math-api
+        image: fluxuscontainerregistry.azurecr.io/math-api:latest
+        ports:
+        - containerPort: 5000
+      restartPolicy: Always

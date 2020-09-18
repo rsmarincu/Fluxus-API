@@ -16,14 +16,14 @@ spec:
     spec:
       containers:
       - name: graphql
-        image: rsmarincu/graphql:latest
+        image: fluxuscontainerregistry.azurecr.io/graphql:latest
         env:
         - name: BIND_HOST
           value: 0.0.0.0
         - name: BIND_PORT
           value: "8080"
         - name: NEO4J_HOST
-          value: neo4j
+          value: 51.132.245.212
         - name: NEO4J_PORT
           value: "7687"
         - name: PYTHONUNBUFFERED
